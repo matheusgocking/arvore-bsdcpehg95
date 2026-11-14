@@ -1,0 +1,1526 @@
+<!doctype html><html lang="pt-BR"><head><meta name="robots" content="noindex,nofollow,noarchive"><title>Árvore da Família</title><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+
+<title>Árvore da Família</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: barra fina no topo; Caminho, Linha do tempo e Árvore toda ocupam a tela; ficha à direita na árvore. */
+/* Identidade: livro de família em pergaminho. Papel envelhecido, tinta sépia, ouro de iluminura e azul real; aro azul nos homens e vinho nas mulheres; galhos em marrom de tronco. */
+:root{
+  --bg:#eee2c6; --paper:#f8efd9; --ink:#3a2a1a; --muted:#7b6447; --line:#d3bd93; --soft:#e7d7b3;
+  --accent:#24497a; --accent-ink:#fbf4e2; --sel:#dfe6ef; --danger:#9b2f25;
+  --men:#2f62a8; --women:#a83a54; --hist:#9a6b1f; --gold:#b08429; --branch:#7a5332;
+  --serif:"Cormorant Garamond","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1d150e; --paper:#2a1f15; --ink:#f1e4c8; --muted:#c3aa80; --line:#4b3a27; --soft:#33261a;
+  --accent:#9dbbe6; --accent-ink:#13182a; --sel:#26324a; --danger:#e58a7f;
+  --men:#8db3ea; --women:#ef9aac; --hist:#e0b866; --gold:#d9b25c; --branch:#b08560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1d150e; --paper:#2a1f15; --ink:#f1e4c8; --muted:#c3aa80; --line:#4b3a27; --soft:#33261a;
+  --accent:#9dbbe6; --accent-ink:#13182a; --sel:#26324a; --danger:#e58a7f;
+  --men:#8db3ea; --women:#ef9aac; --hist:#e0b866; --gold:#d9b25c; --branch:#b08560; color-scheme:dark}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background-color:var(--bg);background-image:radial-gradient(ellipse 120% 90% at 50% 35%,transparent 55%,color-mix(in srgb,var(--branch) 22%,transparent) 100%),radial-gradient(circle at 20% 15%,color-mix(in srgb,var(--paper) 55%,transparent),transparent 40%);background-attachment:fixed;color:var(--ink);font:15px/1.5 var(--sans);margin:0;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{touch-action:manipulation;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line);background:var(--paper)}
+.top h1{font:600 20px/1.2 var(--serif);margin:0;text-wrap:balance}
+.count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.tools{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.search{position:relative}
+.search input{width:200px;max-width:52vw;height:40px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:16px}
+.results{position:absolute;right:0;top:44px;z-index:30;min-width:240px;max-height:300px;overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgb(0 0 0 / .14)}
+.results button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 12px}
+.results button:hover,.results button:focus-visible{background:var(--soft)}
+.results small{color:var(--muted)}
+.btn{height:40px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.icon{width:40px;padding:0;font-size:18px}
+.btn.danger{color:var(--danger)}
+
+.main{flex:1;display:flex;min-height:0}
+.scroller{flex:1;overflow:auto;position:relative;min-width:0}
+.sizer{position:relative}
+.tree{position:absolute;left:0;top:0;transform-origin:0 0}
+.tree svg{position:absolute;left:0;top:0;overflow:visible}
+.tree path{fill:none;stroke:var(--line);stroke-width:1.6}
+.tree path.spouse{stroke:var(--muted);stroke-width:1.6}
+.tree path.far{stroke-dasharray:5 5}
+.gen{position:absolute;left:12px;font:500 12px/1 var(--serif);color:var(--muted);letter-spacing:.06em}
+.card{position:absolute;width:188px;height:78px;box-sizing:border-box;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);text-align:left;display:flex;flex-direction:column;justify-content:center;gap:3px;overflow:hidden;user-select:none;-webkit-user-select:none;cursor:grab}
+.card:hover{border-color:var(--muted)}
+.card.sel{background:var(--sel);border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.card.drag{cursor:grabbing;box-shadow:0 10px 24px rgb(0 0 0 / .18);z-index:5}
+.card.moved::after{content:"";position:absolute;top:6px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.card .n{font-size:14px;font-weight:600;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;flex:none;max-height:35px}
+.card .d{font-size:12px;line-height:16px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;flex:none}
+.tree.movemode .card{touch-action:none}
+.card.root{border-color:var(--accent)}
+.card.elo{border:2px dashed var(--danger);background:var(--bg)}
+.card.elo .n{color:var(--danger)}
+.card.elo .d{color:var(--danger);opacity:.85}
+.fold{position:absolute;top:-1px;left:50%;transform:translate(-50%,-50%);min-width:26px;height:22px;padding:0 6px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--muted);font-size:12px;line-height:20px;font-variant-numeric:tabular-nums;cursor:pointer;z-index:2}
+.fold::before{content:"";position:absolute;inset:-9px -7px}
+.fold:hover{border-color:var(--muted);color:var(--ink)}
+.fold.closed{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.card{overflow:visible}
+.card .n,.card .d{position:relative}
+.views{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.segv{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.segv button{height:38px;padding:0 12px;border:0;background:var(--paper)}
+.segv button+button{border-left:1px solid var(--line)}
+.segv button.on{background:var(--sel);font-weight:600}
+.viewNote{color:var(--muted);font-size:13px}
+.linkbtn{border:0;background:none;color:var(--accent);text-decoration:underline;text-underline-offset:2px;padding:0;height:40px;font-size:13px}
+.scroller.pan{cursor:grabbing}
+.btn.on{background:var(--sel);border-color:var(--accent);color:var(--ink)}
+
+.panel{width:340px;flex:none;border-left:1px solid var(--line);background:var(--paper);overflow:auto;padding:20px 20px 28px;box-sizing:border-box}
+.panel h2{font:600 22px/1.2 var(--serif);margin:0 0 4px;text-wrap:balance}
+.panel .life{color:var(--muted);margin:0 0 16px;font-variant-numeric:tabular-nums}
+.rel{display:grid;grid-template-columns:96px 1fr;gap:6px 10px;margin:0 0 16px}
+.rel dt{color:var(--muted);font-size:13px;padding-top:2px}
+.rel dd{margin:0;min-width:0}
+.link{border:0;background:none;padding:0;color:var(--accent);text-decoration:underline;text-underline-offset:2px;text-align:left}
+.none{color:var(--muted)}
+.notes{white-space:pre-wrap;background:var(--soft);border-radius:10px;padding:10px 12px;margin:0 0 16px}
+.adds{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.adds .btn{width:100%}
+.label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.panel .close{display:inline-flex;align-items:center;justify-content:center;float:right;margin:-6px -6px 0 8px}
+.hint{color:var(--muted)}
+
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+.empty div{max-width:360px}
+.empty h2{font:600 20px/1.3 var(--serif);margin:0 0 6px}
+.empty p{color:var(--muted);margin:0 0 16px}
+
+.overlay{position:fixed;inset:0;background:rgb(0 0 0 / .4);display:flex;align-items:flex-start;justify-content:center;z-index:50;overflow:auto;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.dialog{background:var(--paper);border-radius:12px;width:100%;max-width:520px;padding:20px;box-sizing:border-box;box-shadow:0 16px 40px rgb(0 0 0 / .25)}
+.dialog h2{font:600 20px/1.25 var(--serif);margin:0 0 4px}
+.dialog .sub{color:var(--muted);margin:0 0 16px}
+.f{display:flex;flex-direction:column;gap:4px;margin:0 0 12px;min-width:0}
+.f label,.f .lb{font-size:13px;color:var(--muted)}
+.f input,.f select,.f textarea{font-size:16px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);min-height:40px;box-sizing:border-box;width:100%}
+.f textarea{min-height:80px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg label{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;color:var(--ink);font-size:15px;cursor:pointer}
+.seg input{width:auto;min-height:0;margin:0;accent-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--soft);border-radius:999px;padding:4px 6px 4px 12px}
+.chip button{border:0;background:none;width:28px;height:28px;border-radius:50%;font-size:16px;line-height:1;color:var(--muted)}
+.chip button:hover{background:var(--line)}
+.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px}
+.hist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;max-height:60vh;overflow:auto;margin:0 0 8px}
+.hist .it{display:flex;gap:10px;align-items:center;padding:10px 12px}
+.hist .it+.it{border-top:1px solid var(--line)}
+.hist .tx{flex:1;min-width:0}
+.hist .q{font-weight:600;font-variant-numeric:tabular-nums}
+.hist small{display:block;color:var(--muted)}
+.warn{color:var(--danger);font-size:13px;margin:4px 0 0}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:60;max-width:calc(100% - 32px);box-sizing:border-box}
+.status{padding:8px 16px;background:var(--soft);color:var(--muted);font-size:13px;text-align:center}
+
+/* fotos nas caixas e na ficha */
+.card.hasph{padding-left:58px}
+.card .av{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:var(--soft) center/cover no-repeat;border:1px solid var(--line)}
+.phead{display:flex;gap:14px;align-items:center;margin:0 0 14px}
+.phead .pic{width:72px;height:72px;border-radius:50%;flex:none;background:var(--soft) center/cover no-repeat;border:1px solid var(--line);display:grid;place-items:center;font:600 20px var(--serif);color:var(--muted)}
+.phead h2{margin:0 0 2px}
+.phead .life{margin:0}
+.kin{font-size:13px;color:var(--accent);margin:2px 0 0}
+/* ficha em partes que abrem ao tocar */
+.sec{border-top:1px solid var(--line)}
+.sec:last-of-type{border-bottom:1px solid var(--line)}
+.sec summary{list-style:none;display:flex;align-items:baseline;gap:10px;padding:11px 0;cursor:pointer;min-height:40px;box-sizing:border-box}
+.sec summary::-webkit-details-marker{display:none}
+.sec summary .t{font-weight:600}
+.sec summary .pv{color:var(--muted);font-size:13px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec summary::after{content:"+";color:var(--muted);margin-left:auto}
+.sec[open] summary::after{content:"−"}
+.sec[open] summary .pv{display:none}
+.sec .body{padding:0 0 14px}
+.sec .body p{margin:0 0 6px}
+.sec .body .src{font-size:12px;color:var(--muted)}
+.sec .body .rel{margin:0}
+.txt{white-space:pre-wrap}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.photos figure{margin:0;display:flex;flex-direction:column;gap:4px}
+.photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--soft)}
+.photos .mini{font-size:12px;height:30px;padding:0 8px}
+.upl{display:inline-flex;align-items:center;margin-top:8px}
+.upl input{position:absolute;opacity:0;width:1px;height:1px}
+body:not(.editing) .edonly{display:none!important}
+/* entrada: quem é você? */
+.who{position:fixed;inset:0;z-index:55;background:linear-gradient(color-mix(in srgb,var(--bg) 55%,transparent),color-mix(in srgb,var(--bg) 70%,transparent)),url("fundo.jpg") center/cover no-repeat,var(--bg);overflow:auto;display:flex;justify-content:center;padding-block:max(12vh,48px) 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.who .in{width:100%;max-width:440px}
+.who h2{font:600 34px/1.15 var(--serif);margin:0 0 8px;text-wrap:balance}
+.who p{color:var(--muted);margin:0 0 20px}
+.who input{width:100%;box-sizing:border-box;height:52px;padding:0 16px;border:1.5px solid var(--ink);border-radius:12px;background:var(--paper);font-size:18px}
+.who .hits{margin-top:8px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--paper);overflow:hidden}
+.who .hits:empty{display:none}
+.who .hits button{display:flex;gap:12px;align-items:center;text-align:left;border:0;background:none;padding:10px 14px;min-height:52px}
+.who .hits button+button{border-top:1px solid var(--line)}
+.who .hits button:hover,.who .hits button:focus-visible{background:var(--soft)}
+.who .hits .av{width:36px;height:36px;border-radius:50%;flex:none;background:var(--soft) center/cover no-repeat;display:grid;place-items:center;font:600 13px var(--serif);color:var(--muted)}
+.who .hits small{display:block;color:var(--muted)}
+.who .grafia{margin:28px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-size:14px;color:var(--ink)}
+.who .skip{margin-top:16px}
+
+/* homem, mulher e falecido: caixa colorida e meio transparente */
+.card.sxm{background:color-mix(in srgb,var(--men) 20%,var(--paper));border-color:color-mix(in srgb,var(--men) 80%,var(--line))}
+.card.sxf{background:color-mix(in srgb,var(--women) 18%,var(--paper));border-color:color-mix(in srgb,var(--women) 75%,var(--line))}
+.card.dead{background-image:linear-gradient(color-mix(in srgb,var(--paper) 35%,transparent),color-mix(in srgb,var(--paper) 35%,transparent))}
+.card.dead .n{color:color-mix(in srgb,var(--ink) 78%,var(--bg))}
+.card.sel{box-shadow:0 0 0 2px var(--accent)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid}
+.legend .lm{background:color-mix(in srgb,var(--men) 15%,var(--paper));border-color:var(--men)}
+.legend .lf{background:color-mix(in srgb,var(--women) 15%,var(--paper));border-color:var(--women)}
+
+/* caminho: uma pessoa por vez, subindo pelos antepassados */
+.jour{flex:1;overflow:auto;min-width:0;padding-block:20px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--tint,transparent);transition:background-color .6s}
+.jour .col{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.trail{display:flex;flex-wrap:wrap;gap:4px 6px;font-size:13px;color:var(--muted);align-items:center}
+.trail button{border:0;background:none;padding:2px 0;color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.ups{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini{display:flex;gap:10px;align-items:center;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:12px;min-height:64px;background:var(--paper);width:100%}
+.mini.sxm{background:color-mix(in srgb,var(--men) 20%,var(--paper));border-color:color-mix(in srgb,var(--men) 75%,var(--line))}
+.mini.sxf{background:color-mix(in srgb,var(--women) 18%,var(--paper));border-color:color-mix(in srgb,var(--women) 70%,var(--line))}
+.mini:hover{filter:brightness(.98)}
+.mini .av{width:40px;height:40px;border-radius:50%;flex:none;background:var(--soft) center/cover no-repeat;display:grid;place-items:center;font:600 13px var(--serif);color:var(--muted)}
+.mini .k{font-size:12px;color:var(--muted)}
+.mini .nm{font-weight:600;line-height:1.25}
+.mini .yy{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.mini.unk{border-style:dashed;color:var(--muted);background:transparent;cursor:default}
+.upHint{font-size:13px;color:var(--muted);text-align:center}
+.big{border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--paper)}
+.big.sxm{background:color-mix(in srgb,var(--men) 12%,var(--paper));border-color:color-mix(in srgb,var(--men) 65%,var(--line))}
+.big.sxf{background:color-mix(in srgb,var(--women) 11%,var(--paper));border-color:color-mix(in srgb,var(--women) 60%,var(--line))}
+.big .phead{margin-bottom:12px}
+.big .phead .pic{width:84px;height:84px}
+.downs{display:flex;flex-direction:column;gap:6px}
+.downs .lab{font-size:12px;color:var(--muted);letter-spacing:.04em}
+@media (prefers-reduced-motion:no-preference){.jour .col.in{animation:rise .45s ease-out}@keyframes rise{from{opacity:.35;transform:translateY(18px)}to{opacity:1;transform:none}}}
+
+/* medalhões: retrato redondo com aro (azul homem, vinho mulher) e fio de ouro */
+.sxm{--ring:var(--men)} .sxf{--ring:var(--women)}
+.card .av,.mini .av,.phead .pic,.who .hits .av,.tm-medal{border:3px solid var(--ring,var(--gold))!important;box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--gold);background-color:var(--soft);display:grid;place-items:center;font-family:var(--serif);font-weight:700;color:var(--muted)}
+.card{padding-left:60px;border-radius:12px}
+.card .av{width:38px;height:38px;font-size:14px;left:9px}
+.card .n{font:700 16px/1.15 var(--serif)}
+.tree path{stroke:var(--branch);stroke-width:2;opacity:.75}
+.tree path.spouse{stroke:var(--gold);stroke-width:2;opacity:1}
+.gen{font:700 14px/1 var(--serif);color:var(--gold)}
+.top{background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(4px)}
+.top h1{font:700 24px/1.1 var(--serif);letter-spacing:.01em}
+.panel h2,.phead h2{font-family:var(--serif);font-weight:700}
+/* nome em faixa de pergaminho, como nas árvores pintadas */
+.ribbon{display:inline-block;background:var(--paper);border-top:1.5px solid var(--gold);border-bottom:1.5px solid var(--gold);padding:4px 26px;clip-path:polygon(0 0,100% 0,95% 50%,100% 100%,0 100%,5% 50%)}
+.big .ribbon h2{font:700 26px/1.15 var(--serif);margin:0}
+.big{background:var(--paper);box-shadow:0 10px 30px color-mix(in srgb,var(--branch) 18%,transparent)}
+.big .phead{flex-direction:column;text-align:center;gap:10px}
+.big .phead .pic{width:112px;height:112px;font-size:30px;border-width:4px!important}
+.big .life{text-align:center}
+/* galhos ligando pai e mãe à pessoa da vez */
+.ups{position:relative;padding-bottom:26px}
+.ups::before{content:"";position:absolute;left:25%;right:25%;bottom:12px;height:16px;border:2.5px solid var(--branch);border-top:0;border-radius:0 0 16px 16px;opacity:.8}
+.ups::after{content:"";position:absolute;left:50%;bottom:-14px;height:26px;border-left:2.5px solid var(--branch);opacity:.8}
+.mini{border-radius:14px;background:var(--paper)}
+.mini .av{width:46px;height:46px}
+.mini .nm{font:700 16px/1.15 var(--serif)}
+.who h2{font:700 46px/1.05 var(--serif)}
+.who .eyebrow{font:600 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0 0 10px}
+.who .orn{height:14px;margin:14px 0 18px;background:radial-gradient(circle,var(--gold) 0 3px,transparent 3.5px) center/14px 14px no-repeat,linear-gradient(var(--gold),var(--gold)) center/100% 1px no-repeat}
+
+/* linha do tempo: rolo horizontal, da esquerda (mais antigo) para a direita, em capítulos por século */
+.tempo{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:var(--tint,transparent);transition:background-color .8s}
+.tm-head{display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;padding-block:14px 10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tm-head .eyebrow{font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.tm-head h2{font:700 32px/1.05 var(--serif);margin:2px 0 0;text-wrap:balance}
+.tm-head p{color:var(--muted);margin:2px 0 0;font-size:13px}
+.tm-head .tx{flex:1;min-width:220px}
+.tm-play{height:44px;padding:0 20px;border-radius:999px;border:1.5px solid var(--gold);background:var(--accent);color:var(--accent-ink);font-weight:600;letter-spacing:.02em}
+.tm-play.on{background:var(--paper);color:var(--ink)}
+.tm-x{flex:1;overflow-x:auto;overflow-y:hidden;min-height:0;overscroll-behavior-x:contain}
+.tm-row{display:flex;height:100%;min-height:500px;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));width:max-content}
+.tm-chap{position:relative;display:flex;flex-direction:column;--cc:var(--c,#c97b6b);padding-top:44px;margin-right:6px}
+.tm-rail{position:absolute;left:0;right:0;top:4px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--cc) 40%,var(--bg));border:1px solid color-mix(in srgb,var(--cc) 60%,var(--line))}
+.tm-rail span{position:sticky;left:12px;display:inline-block;padding:0 14px;font:700 18px/34px var(--serif);letter-spacing:.05em;white-space:nowrap;color:var(--ink)}
+.tm-track{position:relative;flex:1;display:flex;align-items:stretch;padding:0 24px 0 0}
+.tm-track::before{content:"";position:absolute;left:0;right:0;top:50%;height:5px;margin-top:-2px;border-radius:3px;background:linear-gradient(90deg,var(--branch),color-mix(in srgb,var(--branch) 70%,var(--gold)))}
+.tm-slate{flex:none;align-self:center;position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:150px;height:150px;margin:0 30px 0 14px;border-radius:50%;background:var(--paper);border:2px solid var(--gold);box-shadow:0 0 0 6px color-mix(in srgb,var(--cc) 40%,var(--bg)),0 10px 26px color-mix(in srgb,var(--branch) 25%,transparent);text-align:center}
+.tm-slate b{font:700 54px/1 var(--serif);color:var(--gold)}
+.tm-slate span{font-size:12px;color:var(--muted);padding:0 14px;line-height:1.3}
+.tm-ev{position:relative;flex:none;width:250px;height:50%;display:flex;flex-direction:column}
+.tm-ev+.tm-ev{margin-left:-86px}
+.tm-ev.u{justify-content:flex-end;padding-bottom:30px}
+.tm-ev.d{justify-content:flex-start;padding-top:30px;align-self:flex-end}
+.tm-ev::before{content:"";position:absolute;left:50%;width:2px;height:30px;background:var(--ring,var(--gold));opacity:.8}
+.tm-ev.u::before{bottom:0}.tm-ev.d::before{top:0}
+.tm-ev::after{content:"";position:absolute;left:50%;width:16px;height:16px;margin-left:-7px;border-radius:50%;background:var(--paper);border:3px solid var(--ring,var(--gold));z-index:1}
+.tm-ev.u::after{bottom:-9px}.tm-ev.d::after{top:-9px}
+.tm-card{display:flex;gap:12px;align-items:center;text-align:left;width:100%;background:color-mix(in srgb,var(--paper) 94%,transparent);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 8px 22px color-mix(in srgb,var(--branch) 16%,transparent)}
+button.tm-card{cursor:pointer}
+button.tm-card:hover{border-color:var(--ring,var(--gold));transform:translateY(-2px)}
+.tm-medal{width:54px;height:54px;border-radius:50%;flex:none;background:var(--soft) center/cover no-repeat;font-size:18px}
+.tm-y{font:700 28px/1 var(--serif);color:var(--gold);font-variant-numeric:tabular-nums}
+.tm-nm{font:700 18px/1.15 var(--serif)}
+.tm-tx{color:var(--ink);font-size:14px}
+.tm-ico{font-size:17px;color:var(--gold);margin-right:4px}
+.tm-hist .tm-card{border:2px solid var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--paper));align-items:flex-start}
+.tm-seal{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font:700 20px/1 var(--serif);box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--gold)}
+.tm-hist .lab{font:600 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--hist);display:block;margin:4px 0}
+.tm-src{display:block;font-size:12px;color:var(--muted);margin-top:4px}
+.tm-end{flex:none;align-self:center;width:220px;margin-left:30px;text-align:center;color:var(--muted);font:italic 600 22px/1.3 var(--serif)}
+@media (prefers-reduced-motion:no-preference){
+  .tm-ev .tm-card{transition:opacity .7s ease,transform .7s ease,border-color .2s}
+  .tm-ev.pre .tm-card{opacity:.3;transform:scale(.94)}
+  .tm-ev.u.pre .tm-card{transform:translateY(-18px) scale(.94)}
+  .tm-ev.d.pre .tm-card{transform:translateY(18px) scale(.94)}
+}
+@media (max-width:760px){
+  .tm-head h2{font-size:26px}
+  .tm-ev{width:220px}.tm-ev+.tm-ev{margin-left:-70px}
+  .tm-slate{width:120px;height:120px}.tm-slate b{font-size:42px}
+}
+/* fundo: árvore antiga desfocada, coberta por um véu na cor do papel para o texto ler bem */
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(color-mix(in srgb,var(--bg) 58%,transparent),color-mix(in srgb,var(--bg) 58%,transparent)),url("fundo.jpg") center/cover no-repeat;pointer-events:none}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body::before{background:linear-gradient(color-mix(in srgb,var(--bg) 80%,transparent),color-mix(in srgb,var(--bg) 80%,transparent)),url("fundo.jpg") center/cover no-repeat}}
+:root[data-theme="dark"] body::before{background:linear-gradient(color-mix(in srgb,var(--bg) 80%,transparent),color-mix(in srgb,var(--bg) 80%,transparent)),url("fundo.jpg") center/cover no-repeat}
+.jour{background:var(--tint,transparent)}
+
+
+/* mapa: onde a família estava em cada ano */
+.mapa{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.mp-head{display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;padding-block:14px 10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mp-head .tx{flex:1;min-width:220px}
+.mp-head .eyebrow{font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.mp-head h2{font:700 40px/1 var(--serif);margin:4px 0 2px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.mp-head p{color:var(--muted);margin:0;font-size:13px}
+.mp-wrap{flex:1;min-height:0;display:flex;gap:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mp-box{flex:1;min-width:0;position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:color-mix(in srgb,var(--accent) 9%,var(--paper))}
+.mp-box svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.mp-msg{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);padding:20px;text-align:center}
+.mp-land{fill:var(--soft);stroke:color-mix(in srgb,var(--branch) 35%,var(--line));stroke-width:.7;vector-effect:non-scaling-stroke}
+.mp-line{fill:none;stroke:var(--branch);stroke-width:2.2;vector-effect:non-scaling-stroke;stroke-dasharray:7 5;stroke-linecap:round;opacity:.9}
+.mp-line.old{opacity:.32}
+.mp-dot{fill:color-mix(in srgb,var(--gold) 65%,var(--paper));stroke:var(--branch);stroke-width:1.6;vector-effect:non-scaling-stroke}
+.mp-dot.gone{fill:var(--paper);opacity:.55}
+.mp-lab{fill:var(--ink);font-family:var(--serif);font-weight:700;paint-order:stroke;stroke:var(--paper);stroke-linejoin:round}
+.mp-lab .n{fill:var(--muted);font-family:var(--sans);font-weight:500}
+.mp-ev{width:290px;flex:none;overflow:auto;margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.mp-ev li{margin:0}
+.mp-ev button{width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:9px 12px;display:block}
+.mp-ev button:hover{border-color:var(--gold)}
+.mp-ev .y{font:700 18px/1 var(--serif);color:var(--gold);font-variant-numeric:tabular-nums;margin-right:6px}
+.mp-ev li.now button{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.mp-ev .vazio{color:var(--muted);font-size:13px;padding:6px 2px}
+.mp-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding-block:10px calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mp-bar input[type=range]{flex:1;min-width:180px;accent-color:var(--accent);height:40px}
+.mp-bar .ends{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.mp-key{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.mp-key i{display:inline-block;vertical-align:-2px;margin-right:5px}
+.mp-key .kd{width:11px;height:11px;border-radius:50%;background:color-mix(in srgb,var(--gold) 65%,var(--paper));border:1.5px solid var(--branch)}
+.mp-key .kl{width:22px;border-top:2px dashed var(--branch);vertical-align:3px}
+@media (max-width:760px){
+  .mapa{overflow:auto}
+  .mp-wrap{display:contents}
+  .mp-box{order:1;flex:none;height:56vh;min-height:300px;margin-left:max(16px,env(safe-area-inset-left,0px));margin-right:max(16px,env(safe-area-inset-right,0px))}
+  .mp-bar{order:2}
+  .mp-ev{order:3;width:auto;overflow:visible;padding:0 max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+  .mp-head h2{font-size:32px}
+}
+
+/* entrada por família */
+.fams{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:0 0 8px}
+.fams button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:64px;padding:10px 14px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper);text-align:left}
+.fams button:hover,.fams button:focus-visible{border-color:var(--gold)}
+.fams b{font:700 22px/1.1 var(--serif)}
+.fams small{color:var(--muted);font-size:12px}
+.fams .other b{font:600 16px/1.2 var(--sans);color:var(--muted)}
+#whoStep2 .hits{max-height:52vh;overflow:auto}
+#whoStep2 .hits:empty{display:none}
+#whoBack{height:32px;margin:0 0 8px}
+/* História: globo em cima, linha do tempo embaixo */
+.hs-globe{position:relative;flex:1 1 44%;min-height:220px;margin:0 max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px));border-radius:16px;overflow:hidden;touch-action:none;cursor:grab}
+.hs-globe:active{cursor:grabbing}
+.hs-globe svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hs-sea{fill:color-mix(in srgb,var(--accent) 13%,var(--paper));stroke:color-mix(in srgb,var(--branch) 45%,var(--line));stroke-width:1.2}
+.hs-grat{fill:none;stroke:var(--line);stroke-width:.5;opacity:.7}
+.hs-cap{position:absolute;left:10px;bottom:8px;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:13px;color:var(--muted);pointer-events:none}
+.hs-cap b{font:700 20px/1 var(--serif);color:var(--gold);margin-right:4px;font-variant-numeric:tabular-nums}
+.hs-hint{position:absolute;right:10px;top:8px;margin:0;font-size:12px;color:var(--muted);pointer-events:none}
+.hs-msg{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);text-align:center;padding:16px}
+.tempo .tm-x{flex:1 1 56%}
+.tempo .tm-row{min-height:300px}
+@media (max-width:760px){
+  .tm-head{padding-block:8px 6px}.tm-head p{display:none}.tm-head h2{font-size:22px}.tm-head .tx{min-width:0}
+  .tm-play{height:36px;padding:0 14px;font-size:14px}
+  .hs-globe{flex-basis:34%;min-height:190px}
+  .tempo .tm-row{min-height:0}
+  .tm-chap{padding-top:38px}.tm-rail{height:28px}.tm-rail span{font-size:15px;line-height:28px}
+  .tm-ev.u{padding-bottom:22px}.tm-ev.d{padding-top:22px}.tm-ev::before{height:22px}
+  .tempo .tm-card{padding:8px 10px;gap:8px;border-radius:12px}
+  .tempo .tm-medal{width:40px;height:40px;font-size:14px}
+  .tempo .tm-y{font-size:20px}.tempo .tm-nm{font-size:15px}.tempo .tm-tx{font-size:13px;line-height:1.35}.tempo .tm-src{font-size:11px}
+  .tm-hist .tm-tx{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .tempo .tm-slate{width:96px;height:96px}.tempo .tm-slate b{font-size:32px}.tempo .tm-slate span{font-size:10px}
+}
+/* canto com o século e o ano */
+.era{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:20;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;align-items:flex-end;box-shadow:0 6px 18px rgb(0 0 0 / .08);pointer-events:none}
+.era .c{font:600 11px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.era .y{font:600 26px/1.1 var(--serif);font-variant-numeric:tabular-nums}
+
+@media (max-width:760px){
+  .main{flex-direction:column}
+  .panel{width:auto;border-left:0;border-top:1px solid var(--line);max-height:55%;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+  .search input{width:150px}
+  .tools .lbl{display:none}
+}
+@media (prefers-reduced-motion:no-preference){.scroller{scroll-behavior:smooth}}
+</style>
+
+<header class="top">
+  <h1>Árvore da Família</h1>
+  <span class="count" id="count"></span>
+  <div class="views">
+    <div class="segv" role="group" aria-label="O que mostrar">
+      <button id="vCam" aria-pressed="true">Caminho</button>
+      <button id="vHist" aria-pressed="false">História</button>
+      <button id="vToda" aria-pressed="false" hidden>Árvore</button>
+    </div>
+    <span class="viewNote" id="viewNote"></span>
+    <button class="linkbtn" id="openAll" hidden></button>
+  </div>
+  <div class="tools">
+    <div class="search" id="searchBox" hidden>
+      <input id="q" type="search" placeholder="Procurar pessoa" autocomplete="off" aria-label="Procurar pessoa">
+      <div class="results" id="results" hidden></div>
+    </div>
+    <button class="btn" id="whoBtn">Quem é você?</button>
+    <button class="btn icon" id="zoomOut" aria-label="Diminuir">−</button>
+    <button class="btn icon" id="zoomIn" aria-label="Aumentar">+</button>
+    <button class="btn edonly" id="moveMode" aria-pressed="false" title="No celular, ligue para arrastar as caixas com o dedo">Mover</button>
+    <button class="btn edonly" id="relayout" hidden title="Devolve as caixas que você arrastou para o lugar automático">Organizar</button>
+    <button class="btn primary" id="addNew" hidden>+ <span class="lbl">Pessoa</span></button>
+    <button class="btn" id="histBtn" hidden title="Volta a árvore para como estava antes de uma mudança">Voltar atrás</button>
+    <button class="btn" id="editToggle" aria-pressed="false" hidden>Editar</button>
+  </div>
+</header>
+<div class="who" id="who" hidden>
+  <div class="in">
+    <p class="eyebrow">Bem-vindo à árvore da família</p>
+    <h2 id="whoT">Qual é a sua família?</h2>
+    <div class="orn" aria-hidden="true"></div>
+    <p id="whoP">Toque no sobrenome da sua família. Depois você escolhe o seu nome.</p>
+    <div class="fams" id="whoFams"></div>
+    <div id="whoStep2" hidden>
+      <button class="linkbtn" id="whoBack">‹ Trocar de família</button>
+      <input id="whoQ" type="search" placeholder="Procure seu nome" autocomplete="off" aria-label="Seu nome">
+      <div class="hits" id="whoHits"></div>
+    </div>
+    <button class="linkbtn skip" id="whoSkip">Entrar sem escolher ninguém</button>
+    <p class="grafia" id="whoGrafia">O sobrenome mudou no caminho: <b>Göcking</b> na Pomerânia, <b>Goecking</b> em Minas Gerais e <b>Gocking</b> nos documentos do Odecir, no Espírito Santo. O mais antigo achado é Carl Göcking, que casou em Stettin em 1821.</p>
+  </div>
+</div>
+<div class="status" id="status" hidden></div>
+<div class="main">
+  <section class="jour" id="jour" hidden aria-live="polite"></section>
+  <section class="tempo" id="tempo" hidden></section>
+  <div class="era" id="era" hidden aria-hidden="true"><span class="c" id="eraC"></span><span class="y" id="eraY"></span></div>
+  <div class="scroller" id="scroller">
+    <div class="sizer" id="sizer"><div class="tree" id="tree"></div></div>
+    <div class="empty" id="empty">
+      <div>
+        <h2>Carregando a árvore</h2>
+        <p>As pessoas aparecem aqui em gerações, dos mais antigos em cima até os mais novos embaixo.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="panel" id="panel" hidden></aside>
+</div>
+<div class="overlay" id="overlay" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script type="application/json" id="snapData">[["0voqa8trm9zhmlj4nf6n",{"conjuges":[],"falecimento":"Sim","localNascimento":"","mae":"","nascimento":"","nome":"Sebastião de Souza Melo","notas":"","pai":"","sexo":"m"}],["1htjknim8s95gfrg7iwg",{"conjuges":[],"falecimento":"","localNascimento":"Baixo Guandu, ES","mae":"sfgj9t42lxz2qz4q8s8f","nascimento":"17/08","nome":"Eliaquim Leal de Melo","notas":"","pai":"0voqa8trm9zhmlj4nf6n","sexo":"m"}],["1z8xxyvaj0e3o0lfy033",{"conjuges":[],"falecimento":"02/06/2010, em Vitória, ES","localNascimento":"Campo Grande, Cariacica, ES","mae":"k1ezdci0rler84hrzmxn","nascimento":"06/05/1939","nome":"Edna Goecking","notas":"Certidão de nascimento (Registro Civil do município de Espírito Santo, ES, livro A-29, fls. 373/374, termo 11.585): Edna Goecking, nascida em 06/05/1939 em Campo Grande, Cariacica, filha de Rodolpho e Olinda Goecking; avós paternos Alfredo e Laura Goecking; maternos Alberto e Guilhermina Storch. É registro tardio: feito em 30/01/1957, por petição ao juiz, com ela mesma como declarante. A data não fecha com a do irmão Odecir (10/08/1939, registrado na hora), então o ano de 1939 da Edna provavelmente está errado. O perfil @goeckingfamily dá Afonso Cláudio como local; ficou o da certidão. Morreu em 02/06/2010 em Vitória, ES (perfil @goeckingfamily).","pai":"orqmj8h3dtb4emtj0yva","sexo":"f"}],["21escylfstyi5qyf2ckz",{"conjuges":[],"falecimento":"","localNascimento":"Baixo Guandu, ES","mae":"sfgj9t42lxz2qz4q8s8f","nascimento":"04/04/1945","nome":"Zuleica Leal de Melo","notas":"","pai":"0voqa8trm9zhmlj4nf6n","sexo":"f"}],["2s39bfn0pzjtgl5sr1he",{"conjuges":["fv1ujxi73ittg4aztlb4"],"falecimento":"","localNascimento":"","mae":"","nascimento":"","nome":"Valéria Frigini","notas":"Descobrir nome completo.","pai":"","sexo":"f"}],["509hfmirvghx7z2pnh1g",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"sfgj9t42lxz2qz4q8s8f","nascimento":"22/06/1942","nome":"Solange Mara Leal de Mello","notas":"","pai":"0voqa8trm9zhmlj4nf6n","sexo":"f"}],["8d5pbj0okthtu3x5awzi",{"conjuges":[],"falecimento":"","localNascimento":"Baixo Guandu, ES","mae":"sfgj9t42lxz2qz4q8s8f","nascimento":"10/10/1943","nome":"Haroldo Leal de Melo","notas":"","pai":"0voqa8trm9zhmlj4nf6n","sexo":"m"}],["9ooz5n35id84rdlvysb8",{"conjuges":[],"falecimento":"","localNascimento":"Vila Velha, ES","mae":"2s39bfn0pzjtgl5sr1he","nascimento":"02/03","nome":"Arthur José Frigini Göcking","notas":"","pai":"fv1ujxi73ittg4aztlb4","sexo":"m"}],["9tjw235qk37m7va3b45u",{"conjuges":["qkbtyjogdatraulbz7ms"],"falecimento":"","localNascimento":"Vitória, ES","mae":"yb5r989v99fjbecpyr17","nascimento":"26/11/1971","nome":"Wesley Wagner Mello Göcking","notas":"","pai":"ack67n47fg4m6jxvh9gz","sexo":"m"}],["ack67n47fg4m6jxvh9gz",{"conjuges":["yb5r989v99fjbecpyr17","helena-angela-kuhl"],"falecimento":"30/04/2004","feitos":"Nos documentos dele (identidade e reservista) o sobrenome já aparece como Gocking, a grafia que a família usa hoje; a certidão de nascimento ainda diz Göcking. O certificado de reservista o descreve com 1,86 m, louro, de olhos verdes.","foto":"c2175af4a4225aed1f03cf8f6e39d51d","fotos":["c2175af4a4225aed1f03cf8f6e39d51d"],"localNascimento":"Serra Pelada, Afonso Cláudio, ES","mae":"k1ezdci0rler84hrzmxn","marcos":[{"ano":1958,"texto":"entra no 3º Batalhão de Caçadores"}],"nascimento":"10/08/1939","nome":"Odecir Adwalter Gocking","notas":"Certidão de nascimento (cartório de Serra Pelada, Afonso Cláudio, ES, livro 8, fls. 15v, termo 1.448, registrada em agosto de 1939): Odecir Adwalter Göcking, nascido em 10/08/1939 em Serra Pelada, filho de Rodolfo Göcking e Olinda Göcking; avós paternos Alfredo Göecking e Laura Göecking; avós maternos Alberto Storch e Guilhermina Storch. A carteira de identidade (ES), o CIC e o certificado de reservista dão a mesma data. Reservista de 1ª categoria (classe de 1939): serviu no 3º Batalhão de Caçadores a partir de 1958, natural de Afonso Cláudio, ES, 1,86 m, louro, olhos verdes, licenciado por conclusão de tempo. Casou primeiro com Maria Elizabeth Leal de Mello e depois com Helena Angela Kuhl; morreu em 30/04/2004 em Vitória, ES (perfil @goeckingfamily). Cópias dos documentos na pasta do projeto, em Documentos.","pai":"orqmj8h3dtb4emtj0yva","sexo":"m","trabalho":"Reservista de 1ª categoria: serviu no 3º Batalhão de Caçadores a partir de 1958 e foi licenciado por conclusão de tempo (certificado de reservista)."}],["adam-reichardt",{"conjuges":["friederica-wilhelmina-wittig"],"falecimento":"","localNascimento":"","mae":"","nascimento":"","nome":"Adam Reichardt","notas":"Pai de Laura Rosamunda (1881) e Ottilia Anna (1885), pelas confirmações nº 510 e 547 da Comunidade Evangélica de Teófilo Otoni.","pai":"","sexo":"m"}],["agnes-ebert",{"conjuges":["gustav-adolf-gocking"],"falecimento":"05/06/1935, em Valão, MG","localNascimento":"","mae":"","nascimento":"12/09/1865","nome":"Agnes Ebert","notas":"Livro de óbitos da Comunidade Evangélica de Teófilo Otoni (1935): Agnes Göcking, nascida Ebert, viúva, filha de August Ebert e Henriette Maria Haischmann; nascimento com interrogação na transcrição.","pai":"","sexo":"f"}],["alberto-storch",{"conjuges":["guilhermina-storch"],"falecimento":"","localNascimento":"","mae":"","nascimento":"","nome":"Alberto Storch","notas":"Avô materno de Odecir e Edna, pelas certidões de nascimento dos dois. Provavelmente também pai de Enedina Storch, mas nenhum documento visto diz isso.","pai":"","sexo":"m"}],["alfredo-fernando-goecking",{"conjuges":["laura-rosamunda-reichardt"],"falecimento":"1921","feitos":"Casou com Laura Rosamunda Reichardt e teve 8 filhos, entre eles Rodolfo. Morreu moço: 1921 segundo a Árvore Familiar do FamilySearch, 1924 segundo o índice do casamento do filho Silfredo.","localNascimento":"Teófilo Otoni, MG","mae":"agnes-ebert","nascimento":"15/01/1886","nome":"Alfredo Fernando Goecking","notas":"PAIS: Gustav Adolf Göcking e Agnes Ebert, aceitos por exclusão (Matheus, 14/11/2026). Ainda sem documento direto: se aparecer o batismo de 1886 ou o casamento civil com Laura, anotar aqui. Como se chegou a eles (mapa dos 61 netos do imigrante): Alfredo carrega o sobrenome Göcking, então o pai é um dos 4 filhos homens. 1) Carl Albert Julius e Keller: EXCLUÍDO por documento, a filha Anna Luisa nasceu em 23/09/1885 (confirmação nº 546), 4 meses antes de Alfredo. 2) Carl August e Böhler: EXCLUÍDO se a data do FamilySearch estiver certa, o filho Otto Herbert nasceu em 17/10/1886, 9 meses depois de Alfredo (essa data não tem fonte anexada). 3) Otto Leberecht: muito improvável, tinha 18 anos em 1886 e o primeiro filho com Maria Ebert é de 1891. 4) Gustav Adolf e Agnes Ebert: o único que encaixa, Hermann Adolf em 22/03/1884 (documento), Alfredo em 15/01/1886, Ewald em 03/08/1887. A contagem também fecha: o óbito do imigrante (1905) fala em 54 netos, e os netos mapeados nascidos até 1905, tirando os que já tinham morrido, dão de 52 a 54 contando Alfredo, então não sobra lugar para ele em outra família. A Árvore Familiar do FamilySearch (perfil LTKT-VPD, mantido sobretudo por Sérgio Sabino da Costa Neto) dá: nascido em 15/01/1886 em Teófilo Otoni, batizado em 26/02/1886 como 'Alfred Göcking', morto em 1921, filho de Gustav Adolf Göcking (1860-1925) e Agnes Ebert (1865-1935). Mas nascimento, batismo e pais estão lá SEM fonte anexada: as 5 fontes do perfil são só registros dos filhos. O vínculo com Gustav Adolf veio de unificação de perfis. Bate com o que a nossa pesquisa apontava como mais provável, mas ainda é árvore de terceiros, não documento.\n\nNa mesma árvore, os filhos dele com Laura: Charlotte Milda (1905), Cacilda Selma (1906-2000, morreu no Rio, casada com Alberto Carlos Schultz), Emílio Otto (1908-1974), Elvira Ida (1909), Minetta Laura (1911-1984), Rodolpho (1913-1959), Willi Silfried (1914-1978) e Silfred Arnô (1915-1985). Irmãos (filhos de Gustav Adolf e Agnes): Hermann Adolf (1884), Ewald Luis (1887), Bertha Luisa (1889), Hilda Auguste (1892), Sophia Paulina (1893), Emma Emília (1895), Elise Agnes (1898), Bruno Otto (1900), Mathilde Anna (1902) e Carl Albert (1904).\n\nDocumentos vistos que citam Alfredo como pai: casamento de Silfredo com Henedina Storch (out/1944, Santa Luzia, Colatina, ES, registro civil nº 799, FamilySearch), óbito de Cacilda (Rio de Janeiro, 2000), carteira do IAPC de Rodolfo e certidões de Odecir e Edna. O índice do casamento de Silfredo (1944) dá a morte de Alfredo em 1924, e não 1921; nenhum registro de óbito dele está indexado. Já procurado no FamilySearch sem achar (14/11/2026): batismo de 1886 (não indexado e sem livros da igreja de Teófilo Otoni no catálogo), casamento civil com Laura (o registro civil de Teófilo Otoni não está indexado na coleção de Minas Gerais), óbito. Os irmãos dele na árvore colaborativa também estão sem fonte; as datas exatas batem com as listas da igreja luterana, então quem montou a família usou os livros da igreja. Para fechar o elo: achar a imagem do batismo de 1886 ou o casamento civil de Alfredo e Laura.","pai":"gustav-adolf-gocking","sexo":"m"}],["anna-luise-gocking",{"conjuges":["friedrich-weberling"],"falecimento":"29/11/1930, em Liberdade","localNascimento":"","mae":"luise-neumann","nascimento":"24/05/1864","nome":"Anna Luise Göcking","notas":"Confirmação nº 173 (1878) e livro de óbitos da Comunidade Evangélica de Teófilo Otoni (1930).","pai":"carl-adolph-ludwig-gocking","religiao":"Luterana. Confirmação nº 173 (1878) na Comunidade Evangélica de Teófilo Otoni.","sexo":"f"}],["anna-maria-bohler",{"conjuges":["carl-august-gocking"],"falecimento":"11/03/1924, em São Benedito, MG","localNascimento":"","mae":"","nascimento":"13/07/1848","nome":"Anna Maria Böhler","notas":"Livro de óbitos da Comunidade Evangélica de Teófilo Otoni (1924); o nascimento vem com interrogação na transcrição.","pai":"","sexo":"f"}],["carl-adolph-ludwig-gocking",{"conjuges":["luise-neumann"],"falecimento":"15/08/1905, em Teófilo Otoni, MG","feitos":"Saiu da Pomerânia e chegou ao Brasil em 1858 com a mulher, Luise Neumann, e os filhos. É o tronco dos Goecking e Gocking do Brasil. Quando morreu, em 1905, deixou a viúva, 6 filhos, 54 netos e 42 bisnetos (livro de óbitos da Comunidade Evangélica de Teófilo Otoni).","localNascimento":"Ickermünde, perto de Penkun, Pomerânia","mae":"ernestine-marter","marcos":[{"ano":1845,"texto":"casa com Luise Neumann"},{"ano":1858,"texto":"chega ao Brasil com a mulher e os filhos"}],"nascimento":"30/01/1822","nome":"Carl Adolph Ludwig Göcking","notas":"O imigrante, tronco de todos os Goecking do Brasil. Livro de óbitos da Comunidade Evangélica de Teófilo Otoni (1905): nascido em 30/01/1822 em 'Ickermünde b/Penkuhn', Pomerânia, no Brasil desde 1858, casado desde 1845 com Luise Neumann; deixou 6 filhos, 54 netos e 42 bisnetos. 'Ickermünde' provavelmente é Ueckermünde (hipótese). Batismo em 08/02/1822, filho de Carl Göcking e Ernestine Marter: registro de igreja luterana alemã indexado no FamilySearch ('Deutschland, ausgewählte evangelische Kirchenbücher', livro 'Taufen, Heiraten u Tote 1820-1866', Stettin); morte em 15/08/1905 e pais na Árvore Familiar do FamilySearch (LRB1-XY6). Teve uma irmã, Charlotte Louisa (n. 18/07/1824 em Stettin, casou lá em 1853 com Ferdinand Wilhelm Theodor Thal). Filhos: perfil @goeckingfamily e FamilySearch.","pai":"carl-gocking-pai","religiao":"Evangélica luterana. O óbito está no livro da Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["carl-albert-julius-gocking",{"conjuges":["pauline-keller"],"falecimento":"","localNascimento":"Pomerânia (Alemanha)","mae":"luise-neumann","nascimento":"14/08/1845","nome":"Carl Albert Julius Göcking","notas":"Confirmação nº 17 (1862) da Comunidade Evangélica de Teófilo Otoni: 'Karl Alberto Julius Göcking', pais Karl Adolf Göcking e Luise Neumann. Nos registros dos filhos aparece como Julius Adolf Göcking, com Henriette Keller; filhos confirmados nascidos de 1870 a 1885. Candidato nº 2 a pai de Alfredo. Local de nascimento: dedução, a família chegou em 1858.","pai":"carl-adolph-ludwig-gocking","religiao":"Luterana. Confirmação nº 17 (1862) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["carl-august-gocking",{"conjuges":["anna-maria-bohler"],"falecimento":"antes de 1918","localNascimento":"Pomerânia (Alemanha)","mae":"luise-neumann","nascimento":"17/06/1849","nome":"Carl August Göcking","notas":"Confirmação nº 31 (1863) da Comunidade Evangélica de Teófilo Otoni. Filhos nascidos de 1876 a 1889, família em São Benedito e Santana; separado de Anna Maria Böhler e já falecido em 1918 (livro de óbitos). Candidato nº 3 a pai de Alfredo. Local de nascimento: dedução.","pai":"carl-adolph-ludwig-gocking","religiao":"Luterana. Confirmação nº 31 (1863) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["carl-gocking-pai",{"conjuges":["ernestine-marter"],"falecimento":"","localNascimento":"","mae":"","marcos":[{"ano":1821,"texto":"casa em Stettin com Ernestine Wilhelmine Marter, em 23 de junho"}],"nascimento":"","nome":"Carl Göcking","notas":"Pai do imigrante e o Göcking mais antigo achado. Casou em 23/06/1821 com Ernestine Marter em Stettin, Pomerânia (hoje Szczecin, Polônia): registro de igreja indexado no FamilySearch (ark 1:1:QPVR-27LZ), que não dá os pais dele. Aparece de novo no batismo da filha Charlotte Louisa (1824, grafado 'Karl Gacking') e no casamento dela (1853), todos em Stettin. A imagem original do casamento só abre em site parceiro pago; ela pode trazer a idade e o pai do noivo. O casamento de 1821 está no livro da paróquia militar de Stettin, 'Artillerie Brigade 2: Taufen, Heiraten, Tote 1820-1838' (catálogo FamilySearch koha:239697, filme 72835): indício de que ele servia na Brigada de Artilharia nº 2 da Pomerânia (inferência, não está escrito no índice). FamilySearch: GMYP-1XF.","pai":"","religiao":"Evangélica (luterana). Casou na paróquia militar evangélica de Stettin.","sexo":"m","trabalho":"Provavelmente soldado da Brigada de Artilharia nº 2 da Pomerânia: o casamento está no livro de igreja dessa unidade (catálogo do FamilySearch, filme 72835). É dedução, o registro indexado não diz a profissão."}],["caroline-zacharia",{"conjuges":["johann-gottlieb-marter"],"falecimento":"","localNascimento":"","mae":"","nascimento":"","nome":"Caroline Zacharia","notas":"Avó materna do imigrante. Árvore Familiar do FamilySearch (K84N-WHG), sem fontes anexadas.","pai":"","sexo":"f"}],["emilio-otto-goecking",{"conjuges":["fanny-luiza-weberling"],"falecimento":"15/01/1974, em Teófilo Otoni, MG","localNascimento":"Teófilo Otoni, MG","mae":"laura-rosamunda-reichardt","nascimento":"13/01/1908","nome":"Emílio Otto Goecking","notas":"Irmão de Rodolfo. Fonte: perfil @goeckingfamily (post de 17/04/2023).","pai":"alfredo-fernando-goecking","sexo":"m"}],["emmyfxfyvnlejxl8wecl",{"conjuges":[],"falecimento":"","localNascimento":"Vitória, ES","mae":"yb5r989v99fjbecpyr17","nascimento":"12/04/1965","nome":"Dyonne Mary Mello Gocking","notas":"","pai":"ack67n47fg4m6jxvh9gz","sexo":"f"}],["enedina-storch",{"conjuges":["silfredo-arno-goecking"],"falecimento":"","localNascimento":"","mae":"guilhermina-storch","nascimento":"","nome":"Enedina Storch","notas":"Irmã de Olinda. Fonte: perfil @goeckingfamily (posts de 29/04 e 01/05/2023).","pai":"","sexo":"f"}],["ernestine-marter",{"conjuges":["carl-gocking-pai"],"falecimento":"","localNascimento":"Lippehne, Soldin, Brandenburg (hoje Lipiany, Polônia)","mae":"caroline-zacharia","nascimento":"28/06/1797","nome":"Ernestine Wilhelmine Marter","notas":"Mãe do imigrante. Casamento em 1821 em Stettin: registro de igreja indexado no FamilySearch. A data (28/06/1797, dada como batismo) e os pais vêm da Árvore Familiar do FamilySearch (M75R-R9N), com 3 a 4 fontes. Irmãos: Gottlieb August Wilhelm (1799), Caroline Wilhelmine (1802), Carl Heinrich (1805).","pai":"johann-gottlieb-marter","sexo":"f"}],["fanny-luiza-weberling",{"conjuges":["emilio-otto-goecking"],"falecimento":"2006","localNascimento":"","mae":"","nascimento":"1919","nome":"Fanny Luiza Weberling","notas":"Fonte: perfil @goeckingfamily (post de 17/04/2023).","pai":"","sexo":"f"}],["friederica-wilhelmina-wittig",{"conjuges":["adam-reichardt"],"falecimento":"","localNascimento":"","mae":"","nascimento":"","nome":"Friederica Wilhelmina Wittig","notas":"Mãe de Laura Rosamunda, pela confirmação nº 510 (1897) da Comunidade Evangélica de Teófilo Otoni.","pai":"","sexo":"f"}],["friedrich-weberling",{"conjuges":["anna-luise-gocking"],"falecimento":"03/01/1921","localNascimento":"Othfresen, Alemanha","mae":"","nascimento":"04/11/1855","nome":"Friedrich Wilhelm Andreas Weberling","notas":"Livro de óbitos da Comunidade Evangélica de Teófilo Otoni (1921).","pai":"","sexo":"m"}],["friedrich-wilhelm-schultz",{"conjuges":["maria-theresia-gocking"],"falecimento":"antes de 1893","localNascimento":"","mae":"","nascimento":"","nome":"Friedrich Wilhelm Schultz","notas":"Aparece como falecido nas confirmações dos filhos a partir de 1893.","pai":"","sexo":"m"}],["fs-GGLV-WQP",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"henriette-augusta-gocking","nascimento":"15/12/1872","nome":"Auguste Ottilie Reichardt","notas":"Neta do imigrante. Confirmação nº 315 (1887); mãe de Alfredo Hermes Liesner (perfil @goeckingfamily). FamilySearch (GGLV-WQP).","pai":"philipp-reichardt","sexo":"f"}],["fs-GKCB-NXN",{"conjuges":[],"falecimento":"31/05/1987, em Cambé, PR","localNascimento":"Teófilo Otoni, MG","mae":"maria-ebert","nascimento":"21/03/1909","nome":"Leonel Ricardo Goecking","notas":"Neto do imigrante. Perfil @goeckingfamily (post de 14/04/2023) e FamilySearch (GKCB-NXN).","pai":"otto-leberecht-gocking","sexo":"m"}],["fs-GKHP-HG5",{"conjuges":[],"falecimento":"1988","localNascimento":"","mae":"maria-ebert","nascimento":"1900","nome":"Helena Liberta Goecking","notas":"Neta do imigrante. FamilySearch (GKHP-HG5).","pai":"otto-leberecht-gocking","sexo":"f"}],["fs-GKHP-HGB",{"conjuges":[],"falecimento":"1959","localNascimento":"","mae":"maria-ebert","nascimento":"1891","nome":"Helmuth Otto Goecking","notas":"Neto do imigrante. FamilySearch (GKHP-HGB).","pai":"otto-leberecht-gocking","sexo":"m"}],["fs-GKZS-CQB",{"conjuges":[],"falecimento":"2002","localNascimento":"","mae":"maria-ebert","nascimento":"1912","nome":"Otto Hermann Goecking","notas":"Neto do imigrante. FamilySearch (GKZS-CQB).","pai":"otto-leberecht-gocking","sexo":"m"}],["fs-GKZS-CQL",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"maria-ebert","nascimento":"1904","nome":"Engelbert Ewald Göcking","notas":"Neto do imigrante. FamilySearch (GKZS-CQL).","pai":"otto-leberecht-gocking","sexo":"m"}],["fs-GKZS-QDP",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"henriette-augusta-gocking","nascimento":"","nome":"Charlotte Reichert","notas":"Neta do imigrante. FamilySearch (GKZS-QDP), sem datas.","pai":"philipp-reichardt","sexo":"f"}],["fs-GKZS-ZHJ",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"maria-ebert","nascimento":"1896","nome":"Levin Reinhold Goecking","notas":"Neto do imigrante. FamilySearch (GKZS-ZHJ).","pai":"otto-leberecht-gocking","sexo":"m"}],["fs-GKZS-ZHT",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"maria-ebert","nascimento":"1893","nome":"Arnhold Leberecht Goecking","notas":"Neto do imigrante. FamilySearch (GKZS-ZHT).","pai":"otto-leberecht-gocking","sexo":"m"}],["fs-GR3L-DXJ",{"conjuges":[],"falecimento":"1941","localNascimento":"","mae":"henriette-augusta-gocking","nascimento":"04/03/1868","nome":"Carl Hermann Reichert","notas":"Neto do imigrante. Confirmação nº 239 (1882); FamilySearch (GR3L-DXJ).","pai":"philipp-reichardt","sexo":"m"}],["fs-GR79-39J",{"conjuges":[],"falecimento":"1961","localNascimento":"","mae":"henriette-augusta-gocking","nascimento":"22/11/1874","nome":"Mathilda Henrietta Reichert","notas":"Neta do imigrante. Confirmação nº 386 (1890); FamilySearch (GR79-39J).","pai":"philipp-reichardt","sexo":"f"}],["fs-GR7D-6ZK",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"maria-theresia-gocking","nascimento":"1887","nome":"Ana Maria Schultz","notas":"Neta do imigrante. FamilySearch (GR7D-6ZK); pode ser a mesma pessoa que Anna Marie Hilda (1886).","pai":"friedrich-wilhelm-schultz","sexo":"f"}],["fs-GS44-17F",{"conjuges":[],"falecimento":"1996","localNascimento":"","mae":"maria-ebert","nascimento":"1901","nome":"Lesli Augusta Goecking","notas":"Neta do imigrante. FamilySearch (GS44-17F).","pai":"otto-leberecht-gocking","sexo":"f"}],["fs-GS46-VBF",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"maria-theresia-gocking","nascimento":"1886","nome":"Anna Marie Hilda Schultz","notas":"Neta do imigrante. FamilySearch (GS46-VBF).","pai":"friedrich-wilhelm-schultz","sexo":"f"}],["fs-GS46-ZST",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"agnes-ebert","nascimento":"29/11/1889","nome":"Bertha Luisa Göcking","notas":"Irmã de Alfredo. FamilySearch (GS46-ZST), sem fonte.","pai":"gustav-adolf-gocking","sexo":"f"}],["fs-GS84-9QQ",{"conjuges":[],"falecimento":"1985","localNascimento":"","mae":"agnes-ebert","nascimento":"1904","nome":"Carl Albert Göcking","notas":"Irmão de Alfredo. Provavelmente o Carlos Alberto Goecking casado com Edith Laube, pai de Eggo Adolpho (1928) segundo o perfil @goeckingfamily (hipótese). FamilySearch (GS84-9QQ).","pai":"gustav-adolf-gocking","sexo":"m"}],["fs-GS8Z-MGZ",{"conjuges":[],"falecimento":"1886","localNascimento":"","mae":"pauline-keller","nascimento":"11/04/1873","nome":"Karl Heinrich Goecking","notas":"Neto do imigrante. Livro de óbitos de Teófilo Otoni (morte em 13/01/1886, ou 1876 segundo outra leitura); FamilySearch (GS8Z-MGZ).","pai":"carl-albert-julius-gocking","sexo":"m"}],["fs-GS98-DYQ",{"conjuges":[],"falecimento":"1975","localNascimento":"","mae":"agnes-ebert","nascimento":"1900","nome":"Bruno Otto Göcking","notas":"Irmão de Alfredo. FamilySearch (GS98-DYQ).","pai":"gustav-adolf-gocking","sexo":"m"}],["fs-GSCH-82V",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"agnes-ebert","nascimento":"1898","nome":"Elise Agnes Göcking","notas":"Irmã de Alfredo. FamilySearch (GSCH-82V).","pai":"gustav-adolf-gocking","sexo":"f"}],["fs-GSCH-QS4",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"maria-ebert","nascimento":"1897","nome":"Luise Maria Göcking","notas":"Neta do imigrante. FamilySearch (GSCH-QS4).","pai":"otto-leberecht-gocking","sexo":"f"}],["fs-GSHG-SXG",{"conjuges":[],"falecimento":"22/02/1980, em Teófilo Otoni, MG","localNascimento":"Teófilo Otoni, MG","mae":"agnes-ebert","nascimento":"01/07/1902","nome":"Mathilde Anna Goecking","notas":"Irmã de Alfredo. Casou em 1921 com Alfredo Hermes Liesner. Perfil @goeckingfamily (post de 11/05/2023, filha de Gustav Adolf Goecking e Agnes Ebert) e FamilySearch (GSHG-SXG).","pai":"gustav-adolf-gocking","sexo":"f"}],["fs-GSZ1-TD2",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"agnes-ebert","nascimento":"1892","nome":"Hilda Auguste Göcking","notas":"Irmã de Alfredo. FamilySearch (GSZ1-TD2).","pai":"gustav-adolf-gocking","sexo":"f"}],["fs-GSZR-BF4",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"agnes-ebert","nascimento":"1893","nome":"Sophia Paulina Göcking","notas":"Irmã de Alfredo. FamilySearch (GSZR-BF4).","pai":"gustav-adolf-gocking","sexo":"f"}],["fs-GSZR-D4T",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"agnes-ebert","nascimento":"1895","nome":"Emma Emília Göcking","notas":"Irmã de Alfredo. FamilySearch (GSZR-D4T).","pai":"gustav-adolf-gocking","sexo":"f"}],["fs-KZ2X-BZX",{"conjuges":[],"falecimento":"1968","localNascimento":"","mae":"anna-luise-gocking","nascimento":"06/10/1881","nome":"Emma Ottilia Weberling","notas":"Neta do imigrante. Confirmação nº 483 (1896); FamilySearch (KZ2X-BZX).","pai":"friedrich-weberling","sexo":"f"}],["fs-L2WN-3FV",{"conjuges":[],"falecimento":"1977","localNascimento":"","mae":"anna-luise-gocking","nascimento":"1893","nome":"Regina Luiza Weberling","notas":"Neta do imigrante. FamilySearch (L2WN-3FV).","pai":"friedrich-weberling","sexo":"f"}],["fs-L2WN-3YZ",{"conjuges":[],"falecimento":"1980","localNascimento":"","mae":"anna-luise-gocking","nascimento":"1900","nome":"Fernando Albrecht Weberling","notas":"Neto do imigrante. FamilySearch (L2WN-3YZ).","pai":"friedrich-weberling","sexo":"m"}],["fs-L2WN-QHX",{"conjuges":[],"falecimento":"1935","localNascimento":"","mae":"anna-luise-gocking","nascimento":"30/08/1884","nome":"Otto Friedrich Weberling","notas":"Neto do imigrante. Confirmação nº 540 (1899); FamilySearch (L2WN-QHX).","pai":"friedrich-weberling","sexo":"m"}],["fs-L2WN-QN7",{"conjuges":[],"falecimento":"1965","localNascimento":"","mae":"anna-luise-gocking","nascimento":"1905","nome":"Wilhelm Albert Weberling","notas":"Neto do imigrante. FamilySearch (L2WN-QN7).","pai":"friedrich-weberling","sexo":"m"}],["fs-L5DF-2ZX",{"conjuges":[],"falecimento":"1932","localNascimento":"","mae":"anna-luise-gocking","nascimento":"1888","nome":"Andreas Eduard Weberling","notas":"Neto do imigrante. FamilySearch (L5DF-2ZX).","pai":"friedrich-weberling","sexo":"m"}],["fs-L5DF-KWL",{"conjuges":[],"falecimento":"1928","localNascimento":"","mae":"anna-luise-gocking","nascimento":"1891","nome":"Karl Heinrich Weberling","notas":"Neto do imigrante. FamilySearch (L5DF-KWL).","pai":"friedrich-weberling","sexo":"m"}],["fs-L5KQ-17Z",{"conjuges":[],"falecimento":"1969","localNascimento":"","mae":"anna-luise-gocking","nascimento":"1896","nome":"Heinrich Waldemar Weberling","notas":"Neto do imigrante. FamilySearch (L5KQ-17Z).","pai":"friedrich-weberling","sexo":"m"}],["fs-LJ5R-PLT",{"conjuges":[],"falecimento":"1963","localNascimento":"","mae":"anna-luise-gocking","nascimento":"1886","nome":"Maria Weberling Fiedler","notas":"Neta do imigrante. FamilySearch (LJ5R-PLT).","pai":"friedrich-weberling","sexo":"f"}],["fs-LR11-15C",{"conjuges":[],"falecimento":"18/05/1896","localNascimento":"","mae":"maria-theresia-gocking","nascimento":"14/05/1889","nome":"Adolf August Schultz","notas":"Neto do imigrante. Livro de óbitos de Teófilo Otoni (1896, em Chrysciuma); FamilySearch (LR11-15C).","pai":"friedrich-wilhelm-schultz","sexo":"m"}],["fs-LR11-BRW",{"conjuges":[],"falecimento":"28/01/1875","localNascimento":"","mae":"maria-theresia-gocking","nascimento":"13/01/1875","nome":"Maria Luisa Schultz","notas":"Neta do imigrante. Livro de óbitos de Teófilo Otoni (1875); FamilySearch (LR11-BRW).","pai":"friedrich-wilhelm-schultz","sexo":"f"}],["fs-LR1B-7BJ",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"maria-theresia-gocking","nascimento":"10/08/1880","nome":"Anna Grunhilda Schultz","notas":"Neta do imigrante. Confirmação nº 456 (1895); FamilySearch (LR1B-7BJ).","pai":"friedrich-wilhelm-schultz","sexo":"f"}],["fs-LR1B-7BQ",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"maria-theresia-gocking","nascimento":"18/07/1882","nome":"Mathilda Maria Schultz","notas":"Neta do imigrante. Confirmação nº 503 (1897); FamilySearch (LR1B-7BQ).","pai":"friedrich-wilhelm-schultz","sexo":"f"}],["fs-LR1B-CFB",{"conjuges":[],"falecimento":"1960","localNascimento":"","mae":"henriette-augusta-gocking","nascimento":"10/03/1880","nome":"Gustav Philipp Reichardt","notas":"Neto do imigrante. Confirmação nº 471 (1896); FamilySearch (LR1B-CFB).","pai":"philipp-reichardt","sexo":"m"}],["fs-LR1B-CV1",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"maria-theresia-gocking","nascimento":"16/05/1878","nome":"Luisa Henrietta Schultz","notas":"Neta do imigrante. Confirmação nº 426 (1893); FamilySearch (LR1B-CV1).","pai":"friedrich-wilhelm-schultz","sexo":"f"}],["fs-LR1B-MF8",{"conjuges":[],"falecimento":"19/11/1913, em Teófilo Otoni, MG","localNascimento":"","mae":"agnes-ebert","nascimento":"22/03/1884","nome":"Hermann Adolf Göcking","notas":"Irmão de Alfredo. Confirmação nº 538 (1899), com pais Gustav Adolf Göcking e Agnes Ebert: DOCUMENTO. Morte: livro de óbitos de Teófilo Otoni (1913). FamilySearch (LR1B-MF8).","pai":"gustav-adolf-gocking","religiao":"Luterana. Confirmação nº 538 (1899) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["fs-LR1B-ZM8",{"conjuges":[],"falecimento":"1881","localNascimento":"","mae":"henriette-augusta-gocking","nascimento":"28/02/1877","nome":"Anna Bertha Reichardt","notas":"Neta do imigrante. FamilySearch (LR1B-ZM8).","pai":"philipp-reichardt","sexo":"f"}],["fs-LR1V-ZCK",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"agnes-ebert","nascimento":"03/08/1887","nome":"Ewald Luis Göcking","notas":"Irmão de Alfredo. FamilySearch (LR1V-ZCK), sem fonte.","pai":"gustav-adolf-gocking","sexo":"m"}],["fs-LRS1-7PL",{"conjuges":[],"falecimento":"1956","localNascimento":"","mae":"henriette-augusta-gocking","nascimento":"21/01/1883","nome":"Wilhelm Reichardt","notas":"Neto do imigrante. Confirmação nº 525 (1898); FamilySearch (LRS1-7PL).","pai":"philipp-reichardt","sexo":"m"}],["fs-LT42-2LH",{"conjuges":[],"falecimento":"17/04/1977, em Bauru, SP","localNascimento":"Teófilo Otoni, MG","mae":"pauline-keller","nascimento":"23/09/1885","nome":"Anna Luisa Göcking","notas":"Neta do imigrante. Confirmação nº 546 (1899), com pais Julius Adolf Göcking e Henriette Keller: DOCUMENTO. Nascida 4 meses antes de Alfredo (15/01/1886), o que exclui o casal Julius e Keller como pais dele. FamilySearch (LT42-2LH).","pai":"carl-albert-julius-gocking","religiao":"Luterana. Confirmação nº 546 (1899) na Comunidade Evangélica de Teófilo Otoni.","sexo":"f"}],["fs-LT42-6L7",{"conjuges":[],"falecimento":"1951","localNascimento":"","mae":"pauline-keller","nascimento":"30/03/1877","nome":"Friedrich Wilhelm Göcking","notas":"Neto do imigrante. Confirmação nº 413 (1893); FamilySearch (LT42-6L7).","pai":"carl-albert-julius-gocking","religiao":"Luterana. Confirmação nº 413 (1893) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["fs-LT42-8S5",{"conjuges":[],"falecimento":"23/08/1881","localNascimento":"","mae":"anna-maria-bohler","nascimento":"01/04/1880","nome":"Anna Luise Assla Göcking","notas":"Neta do imigrante. Livro de óbitos de Teófilo Otoni (1881); FamilySearch (LT42-8S5).","pai":"carl-august-gocking","sexo":"f"}],["fs-LT42-F8Z",{"conjuges":[],"falecimento":"30/06/1927","localNascimento":"","mae":"anna-maria-bohler","nascimento":"29/06/1876","nome":"Gustavo Carlos Göcking","notas":"Neto do imigrante. Confirmação nº 410 (1893, 'Carl Gustav'); morte: livro de óbitos de Teófilo Otoni. O FamilySearch (LT42-F8Z) dá nascimento em 1878.","pai":"carl-august-gocking","religiao":"Luterana. Confirmação nº 410 (1893) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["fs-LT42-J93",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"anna-maria-bohler","nascimento":"14/09/1884","nome":"Olga Augusta Göcking","notas":"Neta do imigrante. Confirmação nº 548 (1899); FamilySearch (LT42-J93).","pai":"carl-august-gocking","religiao":"Luterana. Confirmação nº 548 (1899) na Comunidade Evangélica de Teófilo Otoni.","sexo":"f"}],["fs-LT42-JMP",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"anna-maria-bohler","nascimento":"02/10/1882","nome":"Adalbert Gustav Göcking","notas":"Neto do imigrante. Confirmação nº 495 (1897); no FamilySearch como Alberto Gustavo Goecking (LT42-JMP).","pai":"carl-august-gocking","religiao":"Luterana. Confirmação nº 495 (1897) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["fs-LT42-K6X",{"conjuges":[],"falecimento":"02/04/1920","localNascimento":"Sant'Ana","mae":"anna-maria-bohler","nascimento":"25/02/1889","nome":"Hermann Emil Göcking","notas":"Neto do imigrante. Livro de óbitos de Teófilo Otoni (1920); FamilySearch (LT42-K6X).","pai":"carl-august-gocking","sexo":"m"}],["fs-LT42-KJW",{"conjuges":[],"falecimento":"27/03/1920","localNascimento":"","mae":"pauline-keller","nascimento":"20/09/1880","nome":"Emília Christiana Göcking","notas":"Neta do imigrante. Confirmação nº 446 (1894); casada com August Laube, morreu em 1920 em Sant'Ana (livro de óbitos). O FamilySearch (LT42-KJW) dá morte em 1955.","pai":"carl-albert-julius-gocking","religiao":"Luterana. Confirmação nº 446 (1894) na Comunidade Evangélica de Teófilo Otoni.","sexo":"f"}],["fs-LT42-KNP",{"conjuges":[],"falecimento":"1945","localNascimento":"","mae":"pauline-keller","nascimento":"28/08/1872","nome":"August Carl Hermann Goecking","notas":"Neto do imigrante. Confirmação nº 308 (1887); morte: FamilySearch (LT42-KNP).","pai":"carl-albert-julius-gocking","religiao":"Luterana. Confirmação nº 308 (1887) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["fs-LT42-KSV",{"conjuges":[],"falecimento":"1970","localNascimento":"","mae":"pauline-keller","nascimento":"08/08/1883","nome":"Johann Andreas Göcking","notas":"Neto do imigrante. Confirmação nº 524 (1898); FamilySearch (LT42-KSV).","pai":"carl-albert-julius-gocking","religiao":"Luterana. Confirmação nº 524 (1898) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["fs-LT42-LWG",{"conjuges":[],"falecimento":"1950","localNascimento":"","mae":"pauline-keller","nascimento":"28/06/1874","nome":"Emma Augusta Goecking","notas":"Neta do imigrante. Confirmação nº 383 (1890); FamilySearch (LT42-LWG).","pai":"carl-albert-julius-gocking","religiao":"Luterana. Confirmação nº 383 (1890) na Comunidade Evangélica de Teófilo Otoni.","sexo":"f"}],["fs-LT42-NS6",{"conjuges":[],"falecimento":"1950","localNascimento":"","mae":"pauline-keller","nascimento":"29/04/1870","nome":"Carl Julius Adolf Göcking","notas":"Neto do imigrante. Confirmação nº 271 (1885), Comunidade Evangélica de Teófilo Otoni; morte: Árvore Familiar do FamilySearch (LT42-NS6).","pai":"carl-albert-julius-gocking","religiao":"Luterana. Confirmação nº 271 (1885) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["fs-LT42-V45",{"conjuges":[],"falecimento":"21/07/1882","localNascimento":"","mae":"pauline-keller","nascimento":"28/09/1875","nome":"Carl Friedrich Göcking","notas":"Neto do imigrante. Livro de óbitos de Teófilo Otoni (1882); FamilySearch (LT42-V45).","pai":"carl-albert-julius-gocking","sexo":"m"}],["fs-LT42-XHL",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"anna-maria-bohler","nascimento":"24/01/1878","nome":"Waldemar Oscar Göcking","notas":"Neto do imigrante. Confirmação nº 411 (1893); FamilySearch (LT42-XHL).","pai":"carl-august-gocking","religiao":"Luterana. Confirmação nº 411 (1893) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["fs-LT42-ZT6",{"conjuges":[],"falecimento":"1967","localNascimento":"","mae":"henriette-augusta-gocking","nascimento":"1888","nome":"Friedrich Otto Reichardt","notas":"Neto do imigrante. FamilySearch (LT42-ZT6).","pai":"philipp-reichardt","sexo":"m"}],["fs-LT42-ZTK",{"conjuges":[],"falecimento":"17/09/1920","localNascimento":"","mae":"henriette-augusta-gocking","nascimento":"24/11/1885","nome":"Maria Ema Reichardt","notas":"Neta do imigrante. Livro de óbitos de Teófilo Otoni (1920, casada com Wilhelm Bremer); FamilySearch (LT42-ZTK).","pai":"philipp-reichardt","sexo":"f"}],["fs-LTZQ-KQ8",{"conjuges":[],"falecimento":"","localNascimento":"Teófilo Otoni, MG","mae":"anna-maria-bohler","nascimento":"17/10/1886","nome":"Otto Herbert Göcking","notas":"Neto do imigrante. FamilySearch (LTZQ-KQ8): nascido em 17/10/1886, batizado em 19/03/1887, sem fonte anexada. Nascido 9 meses depois de Alfredo (15/01/1886), o que exclui Carl August e Böhler como pais dele, se a data estiver certa.","pai":"carl-august-gocking","sexo":"m"}],["fv1ujxi73ittg4aztlb4",{"conjuges":["2s39bfn0pzjtgl5sr1he"],"falecimento":"","localNascimento":"Vitória, ES","mae":"yb5r989v99fjbecpyr17","nascimento":"19/07/1968","nome":"Wylber Wilson Mello Göcking","notas":"","pai":"ack67n47fg4m6jxvh9gz","sexo":"m"}],["g9ccwckqydvdq8050zh8",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"sfgj9t42lxz2qz4q8s8f","nascimento":"19/01/1951","nome":"Vera Lúcia Leal de Melo","notas":"","pai":"0voqa8trm9zhmlj4nf6n","sexo":"f"}],["guilhermina-storch",{"conjuges":["alberto-storch"],"falecimento":"","localNascimento":"","mae":"","nascimento":"","nome":"Guilhermina Storch","notas":"Conhecida como Mota. Esposa de Alberto Storch (certidões de Odecir e Edna). Mãe de Olinda e de Enedina Storch, que casaram com os irmãos Rodolfo e Silfredo Goecking (perfil @goeckingfamily, post de 01/05/2023).","pai":"","sexo":"f"}],["gustav-adolf-gocking",{"conjuges":["agnes-ebert"],"falecimento":"07/09/1925, em Teófilo Otoni, MG","feitos":"Pai de 11 filhos, nascidos de 1884 a 1902. Viveu e morreu em Teófilo Otoni (livro de óbitos da Comunidade Evangélica, 1925).","localNascimento":"","mae":"luise-neumann","nascimento":"13/12/1861","nome":"Gustav Adolf Göcking","notas":"Livro de óbitos da Comunidade Evangélica de Teófilo Otoni (1925): nascido em 13/12/1861; a confirmação nº 115 diz 13/12/1860. Filhos de 1884 (Hermann Adolf) a 1902 (Mathilde Anna). Candidato nº 1 a pai de Alfredo: morava em Teófilo Otoni e tem filhos na faixa de 1886-1890 sem registro online.","pai":"carl-adolph-ludwig-gocking","religiao":"Luterana. Confirmado na Comunidade Evangélica de Teófilo Otoni (confirmação nº 115).","sexo":"m"}],["helena-angela-kuhl",{"conjuges":["ack67n47fg4m6jxvh9gz"],"falecimento":"","localNascimento":"","mae":"","nascimento":"","nome":"Helena Angela Kuhl","notas":"Segunda esposa de Odecir (perfil @goeckingfamily, post de 18/04/2023).","pai":"","sexo":"f"}],["henriette-augusta-gocking",{"conjuges":["philipp-reichardt"],"falecimento":"","localNascimento":"Pomerânia (Alemanha)","mae":"luise-neumann","nascimento":"13/08/1847","nome":"Henriette Augusta Wilhelmina Elisabeth Göcking","notas":"Confirmação nº 27 (1863) da Comunidade Evangélica de Teófilo Otoni. Filhos Reichardt nascidos de 1874 a 1885. Avó de Alfredo Hermes Liesner (perfil @goeckingfamily). Local de nascimento: dedução.","pai":"carl-adolph-ludwig-gocking","religiao":"Luterana. Confirmação nº 27 (1863) na Comunidade Evangélica de Teófilo Otoni.","sexo":"f"}],["johann-gottlieb-marter",{"conjuges":["caroline-zacharia"],"falecimento":"","localNascimento":"","mae":"","nascimento":"","nome":"Johann Gottlieb Marter","notas":"Avô materno do imigrante. Aparece como sogro no casamento de 1821. Árvore Familiar do FamilySearch (KCTD-TT4), 3 fontes, sem datas.","pai":"","sexo":"m"}],["k1ezdci0rler84hrzmxn",{"conjuges":["orqmj8h3dtb4emtj0yva"],"falecimento":"1999","localNascimento":"","mae":"guilhermina-storch","nascimento":"1917","nome":"Olinda Storch","notas":"Sobrenome Storch conferido nas certidões dos filhos Odecir (1939) e Edna, que dão os pais dela: Alberto Storch e Guilhermina Storch. Anos de nascimento e morte (1917-1999) só pelo perfil @goeckingfamily.","pai":"alberto-storch","sexo":"f"}],["laura-rosamunda-reichardt",{"conjuges":["alfredo-fernando-goecking"],"falecimento":"1939","localNascimento":"Teófilo Otoni, MG","mae":"friederica-wilhelmina-wittig","nascimento":"18/08/1881","nome":"Laura Rosamunda Reichardt","notas":"Documento: confirmação nº 510 (1897) da Comunidade Evangélica de Teófilo Otoni, com nascimento e pais (luterano.org.br). Teve um irmão, Ferdinand Heinrich Reichardt (19/08/1883 a 22/11/1884), pelo livro de óbitos da mesma comunidade; o 'Fernando' do marido pode ter vindo daí, mas isso é só hipótese. Casamento com Alfredo Fernando e filhos: perfil @goeckingfamily e documentos dos netos. O local de nascimento é dedução pela comunidade, não está escrito no registro.","pai":"adam-reichardt","sexo":"f"}],["ls1bq9mst9bapaibixzd",{"conjuges":[],"falecimento":"","localNascimento":"","mae":"","nascimento":"27/04/1965","nome":"Márcio Lucas Nogueira Barbosa","notas":"","pai":"","sexo":"m"}],["luise-neumann",{"conjuges":["carl-adolph-ludwig-gocking"],"falecimento":"11/01/1907","localNascimento":"","mae":"","nascimento":"1823","nome":"Luise Neumann","notas":"A imigrante, casada com Carl Adolph Ludwig Göcking desde 1845, no Brasil desde 1858. Morte em 11/01/1907, viúva: livro de óbitos da Comunidade Evangélica de Teófilo Otoni. Ano de nascimento (1823): perfil @goeckingfamily.","pai":"","sexo":"f"}],["maria-ebert",{"conjuges":["otto-leberecht-gocking"],"falecimento":"","localNascimento":"","mae":"","nascimento":"","nome":"Maria Ebert","notas":"Esposa de Otto Leberecht (perfil @goeckingfamily).","pai":"","sexo":"f"}],["maria-theresia-gocking",{"conjuges":["friedrich-wilhelm-schultz"],"falecimento":"","localNascimento":"","mae":"luise-neumann","nascimento":"1851","nome":"Maria Theresia Göcking","notas":"Filha dos imigrantes. O perfil @goeckingfamily a chama de Maria Theresia; o FamilySearch (GR7D-SS1) de Marie Louise Göcking (n. 1851), casada com Johann Friedrich Wilhelm Schultz (1820-1894). Os registros da igreja usam Maria, Maria Theresa e Marie. 7 filhos Schultz nascidos de 1875 a 1889.","pai":"carl-adolph-ludwig-gocking","sexo":"f"}],["matheus",{"conjuges":[],"falecimento":"","localNascimento":"São Paulo, SP","mae":"emmyfxfyvnlejxl8wecl","nascimento":"30/01/2001","nome":"Matheus Mello Gocking Nogueira Barbosa","notas":"","pai":"ls1bq9mst9bapaibixzd","sexo":"m"}],["orqmj8h3dtb4emtj0yva",{"conjuges":["k1ezdci0rler84hrzmxn"],"falecimento":"14/10/1959, em Vitória, ES","feitos":"Saiu de Teófilo Otoni (MG) para o Espírito Santo, onde casou com Olinda Storch e teve Edna e Odecir. Morreu em Vitória em 1959.","foto":"0e0d59a74df9358b6d39369c9a4325ff","fotos":["0e0d59a74df9358b6d39369c9a4325ff"],"localNascimento":"Teófilo Otoni, MG","mae":"laura-rosamunda-reichardt","nascimento":"31/03/1913","nome":"Rodolfo Goecking","notas":"Carteira de beneficiário do IAPC, Instituto de Aposentadoria e Pensões dos Comerciários (delegacia do Espírito Santo): Rodolfo Goecking, nascido em 31/3/1913, filiação Alfredo Goecking e Laura Goecking, benefício de invalidez. O cartão do ambulatório do IAPC em Vitória o dá como aposentado por invalidez, válido até 30/09/1959, poucos dias antes da morte. Nascimento em Teófilo Otoni, casamento com Olinda Storch e morte em 14/10/1959 em Vitória: perfil @goeckingfamily (post de 14/04/2023). As certidões dos filhos o chamam de Rodolfo/Rodolpho Göcking.","pai":"alfredo-fernando-goecking","sexo":"m","trabalho":"Comerciário: segurado do Instituto de Aposentadoria e Pensões dos Comerciários (IAPC), com carteira profissional nº 41.560, série 56ª. Aposentado por invalidez (carteira e cartão do ambulatório do IAPC em Vitória)."}],["otto-leberecht-gocking",{"conjuges":["maria-ebert"],"falecimento":"","localNascimento":"","mae":"luise-neumann","nascimento":"06/01/1867","nome":"Otto Leberecht Göcking","notas":"Confirmação nº 218 (1881) com a grafia 'Joeking', segundo a pesquisa (não conferi eu mesmo essa linha). Pai de Leonel Ricardo Goecking (n. 1909). Candidato nº 4 a pai de Alfredo, o menos provável.","pai":"carl-adolph-ludwig-gocking","religiao":"Luterana. Confirmação nº 218 (1881) na Comunidade Evangélica de Teófilo Otoni.","sexo":"m"}],["pauline-keller",{"conjuges":["carl-albert-julius-gocking"],"falecimento":"02/11/1926, em Teófilo Otoni, MG","localNascimento":"","mae":"","nascimento":"27/05/1846","nome":"Pauline Rosalie Henriette Keller","notas":"Livro de óbitos da Comunidade Evangélica de Teófilo Otoni (1926): Pauline Henriette Goecking, nascida Keller; o ano de nascimento vem com interrogação na transcrição. Nome completo: perfil @goeckingfamily.","pai":"","sexo":"f"}],["philipp-reichardt",{"conjuges":["henriette-augusta-gocking"],"falecimento":"antes de 1890","localNascimento":"","mae":"","nascimento":"31/01/1843","nome":"Philipp Reichardt","notas":"Confirmação nº 22 (1862) como 'Philippe Reichert', filho do falecido Michael Reichert. Aparece como falecido na confirmação de uma filha em 1890. Não se sabe se é parente de Adam Reichardt, pai de Laura.","pai":"","sexo":"m"}],["qkbtyjogdatraulbz7ms",{"conjuges":["9tjw235qk37m7va3b45u"],"falecimento":"2021","localNascimento":"ES","mae":"","nascimento":"","nome":"Sônia Maria Senna Gocking","notas":"","pai":"","sexo":"f"}],["sfgj9t42lxz2qz4q8s8f",{"conjuges":[],"falecimento":"Sim","localNascimento":"","mae":"","nascimento":"","nome":"Maria da Penha Leal Melo","notas":"","pai":"","sexo":"f"}],["silfredo-arno-goecking",{"conjuges":["enedina-storch"],"falecimento":"30/07/1985, em Teófilo Otoni, MG","localNascimento":"Teófilo Otoni, MG","mae":"laura-rosamunda-reichardt","nascimento":"25/10/1915","nome":"Silfredo Arnô Goecking","notas":"Irmão de Rodolfo. Pai de Dercy Darly Goecking, que casou em 1978 em Teófilo Otoni. Fonte: perfil @goeckingfamily (posts de 29/04/2023).","pai":"alfredo-fernando-goecking","sexo":"m"}],["sjxqknsbbqi4bwpwqg2s",{"conjuges":[],"falecimento":"2001","localNascimento":"","mae":"sfgj9t42lxz2qz4q8s8f","nascimento":"","nome":"Nilva Maria Leal de Melo","notas":"","pai":"0voqa8trm9zhmlj4nf6n","sexo":"f"}],["w9cnz5jdmhcy4xlrmcbk",{"conjuges":[],"falecimento":"","localNascimento":"São Paulo, ES","mae":"qkbtyjogdatraulbz7ms","nascimento":"08/06/2016","nome":"Daniel Adoniran Senna Gocking","notas":"","pai":"9tjw235qk37m7va3b45u","sexo":"m"}],["xjmz39h44paxynhk753r",{"conjuges":[],"falecimento":"","localNascimento":"Vila Velha, ES","mae":"2s39bfn0pzjtgl5sr1he","nascimento":"03/02","nome":"Otto Augusto Frigini Göcking","notas":"","pai":"fv1ujxi73ittg4aztlb4","sexo":"m"}],["yb5r989v99fjbecpyr17",{"conjuges":["ack67n47fg4m6jxvh9gz"],"falecimento":"","localNascimento":"Baixo Guandu, ES","mae":"sfgj9t42lxz2qz4q8s8f","nascimento":"13/05/1940","nome":"Maria Elizabeth Leal de Mello","notas":"","pai":"0voqa8trm9zhmlj4nf6n","sexo":"f"}]]</script>
+<script>
+(function(){
+const W=188,H=78,ROWH=170,GAP_IN=24,GAP_UNIT=48,LEFT=64,TOP=50;
+const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII"];
+let db=null, assets=null, people=new Map(), selected=null, scale=1, loaded=false, readOnly=false, pos={}, editing=false, eu=null, canEd=false, edKnown=false;
+try{eu=localStorage.getItem("arvore-eu")||null}catch(e){}
+const photoUrl=a=>"fotos/"+encodeURIComponent(a)+".jpg";
+const initials=n=>String(n||"?").split(/\s+/).filter(Boolean).filter((w,i,a)=>i===0||i===a.length-1).map(w=>w[0]).join("").toUpperCase();
+const $=id=>document.getElementById(id);
+const escT=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function toast(msg){const t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2600)}
+function status(msg){const s=$("status");if(msg){s.textContent=msg;s.hidden=false}else s.hidden=true}
+
+/* ---------- dados ---------- */
+const P=id=>people.get(id);
+const name=id=>(P(id)&&P(id).nome)||"Sem nome";
+const parentsOf=id=>{const p=P(id);if(!p)return[];return[p.pai,p.mae].filter(x=>x&&people.has(x)&&x!==id)};
+const childrenOf=id=>[...people.keys()].filter(k=>{const p=P(k);return p.pai===id||p.mae===id});
+function spousesOf(id){
+  const s=new Set();
+  (P(id).conjuges||[]).forEach(x=>{if(people.has(x)&&x!==id)s.add(x)});
+  people.forEach((p,k)=>{if((p.conjuges||[]).includes(id)&&k!==id)s.add(k)});
+  childrenOf(id).forEach(c=>parentsOf(c).forEach(x=>{if(x!==id)s.add(x)}));
+  return [...s];
+}
+function siblingsOf(id){
+  const ps=parentsOf(id);if(!ps.length)return[];
+  return [...people.keys()].filter(k=>k!==id&&parentsOf(k).some(x=>ps.includes(x)));
+}
+const year=s=>{const m=String(s||"").match(/(\d{4})(?!.*\d{4})/);return m?m[1]:""};
+// data completa (dd/mm/aaaa) quando houver; senão só o ano
+function dmy(s){const m=String(s||"").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return{d:+m[1],m:+m[2],y:+m[3]};const y=year(s);return y?{y:+y}:null}
+// sem data de morte, mas nascido há mais de 110 anos: tratado como falecido
+const isDead=p=>!!(p&&(p.falecimento||(+year(p.nascimento)&&+year(p.nascimento)<new Date().getFullYear()-110)));
+function ageOf(p){
+  const b=dmy(p.nascimento);if(!b)return null;
+  let e;
+  if(isDead(p)){e=dmy(p.falecimento);if(!e)return null}
+  else{const t=new Date();e={d:t.getDate(),m:t.getMonth()+1,y:t.getFullYear()}}
+  let a=e.y-b.y;
+  if(b.m&&e.m){if(e.m<b.m||(e.m===b.m&&b.d&&e.d&&e.d<b.d))a--}
+  else if(!(b.m&&e.m))return{a,approx:true};
+  return a>=0&&a<125?{a,approx:false}:null;
+}
+function ageTxt(p){const g=ageOf(p);if(!g)return "";return "("+(g.approx?"~":"")+g.a+(g.a===1?" ano":" anos")+")"}
+function lifeShort(p){
+  const a=year(p.nascimento),b=year(p.falecimento),ag=ageTxt(p);
+  let s;
+  if(a&&b)s=a+" – "+b;
+  else if(a)s=(isDead(p)?a+" – †":"n. "+a);
+  else if(b)s="† "+b;
+  else if(p.falecimento)s="†";
+  else return p.localNascimento||"";
+  return ag?s+" "+ag:s;
+}
+const sexCls=p=>p&&p.sexo==="m"?"sxm":p&&p.sexo==="f"?"sxf":"";
+const byName=(a,b)=>name(a).localeCompare(name(b),"pt-BR");
+function centuryOf(y){y=+y;if(!y)return "";const c=Math.ceil(y/100);return "Século "+(ROMAN[c-1]||c)}
+// parentesco visto de quem escolheu "quem é você"
+function kinLabel(id){
+  if(!eu||!people.has(eu)||id===eu)return id===eu?"você":"";
+  const q=[[eu,0]],seen=new Set([eu]);
+  while(q.length){const [x,d]=q.shift();for(const p of parentsOf(x)){if(seen.has(p))continue;if(p===id)return kinName(d+1,P(id).sexo);seen.add(p);q.push([p,d+1])}}
+  if(parentsOf(eu).some(p=>childrenOf(p).includes(id)))return P(id).sexo==="f"?"sua irmã":"seu irmão";
+  return "";
+}
+function kinName(n,s){
+  const f=s==="f";
+  const t=[null,f?"sua mãe":"seu pai",f?"sua avó":"seu avô",f?"sua bisavó":"seu bisavô",f?"sua trisavó":"seu trisavô",f?"sua tetravó":"seu tetravô",f?"sua pentavó":"seu pentavô"];
+  return t[n]||(n+" gerações acima de você");
+}
+
+/* ---------- desenho da árvore ---------- */
+/* ---------- o que aparece: vista, foco e ramos recolhidos ---------- */
+let view="caminho",focus=null,collapsed=new Set(),cur=null,opened=new Set();const GENS=3;
+try{const s=JSON.parse(localStorage.getItem("arvore-vista")||"{}");if(s.view)view=s.view==="linha"?"caminho":(s.view==="tempo"||s.view==="mapa")?"historia":s.view;if(s.focus)focus=s.focus;if(Array.isArray(s.collapsed))collapsed=new Set(s.collapsed);if(Array.isArray(s.opened))opened=new Set(s.opened)}catch(e){}
+function saveView(){try{localStorage.setItem("arvore-vista",JSON.stringify({view,focus,collapsed:[...collapsed],opened:[...opened]}))}catch(e){}}
+function ancestorsOf(id){
+  const out=new Set(),st=[...parentsOf(id)];
+  while(st.length){const a=st.pop();if(out.has(a)||a===id)continue;out.add(a);st.push(...parentsOf(a))}
+  return out;
+}
+function focusId(){
+  if(focus&&people.has(focus))return focus;
+  if(people.has("matheus"))return "matheus";
+  return [...people.keys()][0];
+}
+function visibleAll(){
+  const ids=[...people.keys()];
+  const A=new Set();collapsed.forEach(c=>{if(people.has(c))ancestorsOf(c).forEach(a=>A.add(a))});
+  if(!A.size)return new Set(ids);
+  const nb=i=>[...parentsOf(i),...childrenOf(i),...spousesOf(i)];
+  const seen=new Set(),keep=new Set(),f=focusId();
+  ids.forEach(s=>{
+    if(A.has(s)||seen.has(s))return;
+    const comp=[],q=[s];seen.add(s);
+    while(q.length){const i=q.pop();comp.push(i);nb(i).forEach(n=>{if(!A.has(n)&&!seen.has(n)){seen.add(n);q.push(n)}})}
+    const touches=comp.some(i=>nb(i).some(n=>A.has(n)));
+    if(comp.includes(f)||!touches)comp.forEach(i=>keep.add(i));
+  });
+  return keep;
+}
+// linha direta: a pessoa em foco embaixo, pais em cima, cada casal centrado sobre o filho
+function pedigreeLayout(){
+  const f=focusId(),x={},depth={},sp={},order=[];
+  let cursor=LEFT,maxD=0;const GAP=32;
+  function place(id,d){
+    if(depth[id]!=null)return x[id]+W/2;
+    depth[id]=d;order.push(id);maxD=Math.max(maxD,d);sp[id]=sp[id]||new Set();
+    const p=P(id);
+    const show=!collapsed.has(id)&&(d<GENS||opened.has(id));
+    const ps=show?[p.pai,p.mae].filter(v=>v&&people.has(v)&&v!==id&&depth[v]==null):[];
+    let cx;
+    if(!ps.length){cx=cursor+W/2;cursor+=W+GAP}
+    else{const cs=ps.map(v=>place(v,d+1));cx=cs.reduce((a,b)=>a+b,0)/cs.length;cursor=Math.max(cursor,cx+W/2+GAP)}
+    if(ps.length===2){sp[ps[0]]=sp[ps[0]]||new Set();sp[ps[1]]=sp[ps[1]]||new Set();sp[ps[0]].add(ps[1]);sp[ps[1]].add(ps[0])}
+    x[id]=cx-W/2;return cx;
+  }
+  place(f,0);
+  const y={},gen={};order.forEach(i=>{gen[i]=maxD-depth[i];y[i]=TOP+gen[i]*ROWH});
+  const gens=[...new Set(Object.values(gen))].sort((a,b)=>a-b);
+  const L={x,y,gen,gens,sp,straight:true,maxX:0,maxY:0,vis:new Set(order)};
+  fitBounds(L);return L;
+}
+function computeLayout(){
+  if(view==="toda"||view==="linha")return pedigreeLayout();
+  const vis=visibleAll();
+  const ids=[...people.keys()].filter(i=>vis.has(i));
+  const parentsOf=i=>[P(i).pai,P(i).mae].filter(v=>v&&vis.has(v)&&v!==i);
+  const gen={};ids.forEach(i=>gen[i]=0);
+  const kids={};ids.forEach(i=>kids[i]=[]);
+  ids.forEach(i=>parentsOf(i).forEach(p=>kids[p].push(i)));
+  const sp={};ids.forEach(i=>sp[i]=new Set());
+  ids.forEach(i=>{
+    (P(i).conjuges||[]).forEach(s=>{if(vis.has(s)&&s!==i){sp[i].add(s);sp[s].add(i)}});
+    const ps=parentsOf(i);if(ps.length===2){sp[ps[0]].add(ps[1]);sp[ps[1]].add(ps[0])}
+  });
+  for(let it=0;it<300;it++){
+    let ch=false;
+    ids.forEach(i=>{
+      const ps=parentsOf(i);
+      if(ps.length){const m=Math.max(...ps.map(p=>gen[p]))+1;if(gen[i]<m){gen[i]=m;ch=true}}
+      else if(kids[i].length){const m=Math.min(...kids[i].map(k=>gen[k]))-1;if(gen[i]<m){gen[i]=m;ch=true}}
+      sp[i].forEach(s=>{if(gen[s]>gen[i]){gen[i]=gen[s];ch=true}});
+    });
+    if(!ch)break;
+  }
+  const minG=Math.min(0,...ids.map(i=>gen[i]));ids.forEach(i=>gen[i]-=minG);
+  const rows={};ids.forEach(i=>(rows[gen[i]]=rows[gen[i]]||[]).push(i));
+  const gens=Object.keys(rows).map(Number).sort((a,b)=>a-b);
+  const x={};let maxX=0;
+  gens.forEach(g=>{
+    const row=rows[g];
+    // casais e recasamentos viram uma unidade
+    const parent={};row.forEach(i=>parent[i]=i);
+    const find=i=>parent[i]===i?i:(parent[i]=find(parent[i]));
+    row.forEach(i=>sp[i].forEach(s=>{if(gen[s]===g)parent[find(s)]=find(i)}));
+    const groups={};row.forEach(i=>(groups[find(i)]=groups[find(i)]||[]).push(i));
+    const pkey=i=>{const ps=parentsOf(i).filter(p=>x[p]!=null);return ps.length?ps.reduce((a,p)=>a+x[p]+W/2,0)/ps.length:null};
+    const units=Object.values(groups).map(m=>{
+      const ks=m.map(pkey).filter(v=>v!=null);
+      const key=ks.length?ks.reduce((a,b)=>a+b,0)/ks.length:null;
+      let order;
+      const hub=m.slice().sort((a,b)=>sp[b].size-sp[a].size)[0];
+      const hubSp=m.filter(i=>i!==hub&&sp[hub].has(i));
+      if(m.length>2&&hubSp.length>=2&&hubSp.length===m.length-1){
+        hubSp.sort((a,b)=>(pkey(a)??0)-(pkey(b)??0)||byName(a,b));
+        const h=Math.ceil(hubSp.length/2);order=[...hubSp.slice(0,h),hub,...hubSp.slice(h)];
+      }else{
+        const base=key??0;
+        order=m.slice().sort((a,b)=>{
+          const ka=pkey(a)??(base+(P(a).sexo==="f"?.5:-.5)),kb=pkey(b)??(base+(P(b).sexo==="f"?.5:-.5));
+          return ka-kb||byName(a,b);
+        });
+      }
+      const yr=Math.min(...m.map(i=>Number(year(P(i).nascimento))||9999));
+      return{order,key,yr,w:order.length*W+(order.length-1)*GAP_IN};
+    });
+    units.sort((a,b)=>{
+      if(a.key!=null&&b.key!=null)return a.key-b.key;
+      if(a.key!=null)return -1;if(b.key!=null)return 1;
+      return a.yr-b.yr||byName(a.order[0],b.order[0]);
+    });
+    let cur=LEFT;
+    units.forEach(u=>{
+      let sx=cur;
+      if(u.key!=null)sx=Math.max(cur,u.key-u.w/2);
+      u.order.forEach((i,k)=>{x[i]=sx+k*(W+GAP_IN)});
+      cur=sx+u.w+GAP_UNIT;
+    });
+    maxX=Math.max(maxX,cur);
+  });
+  // centraliza os mais antigos sobre os filhos quando há espaço
+  for(let gi=gens.length-2;gi>=0;gi--){
+    const g=gens[gi];
+    const row=rows[g].slice().sort((a,b)=>x[a]-x[b]);
+    // unidades na ordem atual
+    const seen=new Set(),units=[];
+    row.forEach(i=>{if(seen.has(i))return;const u=[i];seen.add(i);
+      let j=row.indexOf(i)+1;while(j<row.length&&sp[u[u.length-1]].has(row[j])&&!seen.has(row[j])){u.push(row[j]);seen.add(row[j]);j++}
+      units.push(u)});
+    for(let ui=units.length-1;ui>=0;ui--){
+      const u=units[ui];
+      if(u.some(i=>parentsOf(i).length))continue;
+      const ch=[...new Set(u.flatMap(i=>kids[i]))];if(!ch.length)continue;
+      const cx=ch.reduce((a,c)=>a+x[c]+W/2,0)/ch.length;
+      const ux=(x[u[0]]+x[u[u.length-1]]+W)/2;
+      let shift=cx-ux;if(shift<=0)continue;
+      const next=units[ui+1];
+      if(next){const room=x[next[0]]-(x[u[u.length-1]]+W)-GAP_UNIT;shift=Math.min(shift,Math.max(0,room))}
+      u.forEach(i=>x[i]+=shift);
+    }
+  }
+  const y={};ids.forEach(i=>y[i]=TOP+gen[i]*ROWH);
+  // caixas que a pessoa arrastou ficam onde ela deixou
+  ids.forEach(i=>{const p=P(i);if(typeof p.px==="number"&&typeof p.py==="number"){x[i]=Math.max(0,p.px);y[i]=Math.max(0,p.py)}});
+  // nenhuma caixa em cima de outra: na mesma fileira, empurra para a direita o que encostar
+  const byRow={};ids.forEach(i=>{const k=Math.round(y[i]/(H+8));(byRow[k]=byRow[k]||[]).push(i)});
+  Object.values(byRow).forEach(r=>{r.sort((a,b)=>x[a]-x[b]);for(let k=1;k<r.length;k++){const min=x[r[k-1]]+W+GAP_IN;if(x[r[k]]<min&&Math.abs(y[r[k]]-y[r[k-1]])<H+8)x[r[k]]=min}});
+  const L={x,y,gen,gens,sp,maxX:0,maxY:0,vis};
+  fitBounds(L);
+  return L;
+}
+function fitBounds(L){
+  let mx=0,my=0;
+  Object.keys(L.x).forEach(i=>{mx=Math.max(mx,L.x[i]+W);my=Math.max(my,L.y[i]+H)});
+  L.maxX=mx+GAP_UNIT+40;L.maxY=my+80;
+}
+
+function render(){
+  const tree=$("tree"),empty=$("empty");
+  const n=people.size;
+  $("count").textContent=loaded?(n===1?"1 pessoa":n+" pessoas"):"";
+  if(!loaded){return}
+  if(!n){
+    tree.innerHTML="";$("sizer").style.width="0";$("sizer").style.height="0";
+    empty.hidden=false;
+    empty.innerHTML='<div><h2>Ninguém na árvore ainda</h2><p>Comece por você. Depois, pela sua ficha, adicione pai, mãe, irmãos, cônjuge e filhos, e a árvore vai se desenhando sozinha.</p>'+(readOnly?'':'<button class="btn primary" id="firstAdd">Adicionar a primeira pessoa</button>')+'</div>';
+    const fa=$("firstAdd");if(fa)fa.onclick=()=>openForm(null,null);
+    $("panel").hidden=true;return;
+  }
+  empty.hidden=true;
+  if(view==="toda"&&edKnown&&!canEd)view="caminho";
+  const ed=canEd&&!readOnly&&!!db;
+  $("editToggle").hidden=!ed;$("histBtn").hidden=!ed;$("addNew").hidden=!ed;$("vToda").hidden=!canEd;$("searchBox").hidden=!canEd;
+  if(readOnly&&editing)setEditing(false);
+  ["vCam","vHist","vToda"].forEach(b=>{const on=(b==="vCam"&&view==="caminho")||(b==="vHist"&&view==="historia")||(b==="vToda"&&view==="toda");$(b).classList.toggle("on",on);$(b).setAttribute("aria-pressed",on)});
+  const tv=view==="toda";
+  $("scroller").hidden=!tv;$("jour").hidden=view!=="caminho";$("tempo").hidden=view!=="historia";
+  $("zoomIn").hidden=!tv;$("zoomOut").hidden=!tv;
+  if(!tv){
+    $("panel").hidden=true;$("relayout").hidden=true;$("moveMode").hidden=true;$("openAll").hidden=true;$("viewNote").textContent="";
+    if(view==="caminho")renderJourney();else renderTempo();
+    return;
+  }
+  $("era").hidden=true;
+  const L=computeLayout();pos=L;
+  const f=focusId();
+  let html=`<svg id="lines"></svg><div id="gens"></div>`;
+  L.vis.forEach(id=>{
+    const p=P(id);
+    const moved=view==="toda"&&typeof p.px==="number";
+    const hasPar=parentsOf(id).length>0;
+    const isCol=hasPar&&!parentsOf(id).some(x=>L.vis.has(x));
+    const hidden=isCol?ancestorsOf(id).size:0;
+    const fold=hasPar?`<button class="fold${isCol?" closed":""}" data-fold="${escT(id)}" aria-label="${isCol?"Abrir os pais de":"Fechar os pais de"} ${escT(p.nome||"")}" title="${isCol?"Abrir os pais":"Fechar os pais"}">${isCol?"+"+hidden:"−"}</button>`:"";
+    const sub=p.elo?"? um dos 4 filhos homens":p.eloAConfirmar?"pais a confirmar · "+lifeShort(p):lifeShort(p);
+    const av=p.foto?`<span class="av" style="background-image:url('${photoUrl(p.foto)}')" aria-hidden="true"></span>`:`<span class="av" aria-hidden="true">${escT(initials(p.nome))}</span>`;
+    html+=`<div class="card ${sexCls(p)}${isDead(p)?" dead":""}${p.foto?" hasph":""}${id===selected?" sel":""}${moved?" moved":""}${id===f&&view==="linha"?" root":""}${p.elo||p.eloAConfirmar?" elo":""}" role="button" tabindex="0" data-id="${escT(id)}" style="left:${L.x[id]}px;top:${L.y[id]}px" title="${escT(p.nome||"")}">${av}<span class="n">${escT(p.nome||"Sem nome")}</span><span class="d">${escT(sub)}</span>${fold}</div>`;
+  });
+  tree.innerHTML=html;
+  drawLines(L);
+  tree.querySelectorAll(".card").forEach(c=>{
+    c.addEventListener("pointerdown",cardDown);
+    c.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(c.dataset.id)}});
+  });
+  tree.querySelectorAll(".fold").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();const id=b.dataset.fold;
+    if(b.classList.contains("closed")){collapsed.delete(id);opened.add(id)}else{collapsed.add(id);opened.delete(id)}
+    saveView();render();
+  }));
+  const toda=view==="toda";
+  $("relayout").hidden=true;$("moveMode").hidden=true;
+  $("viewNote").textContent="A partir de "+firstName(f)+": três gerações. Toque no + de alguém para abrir os pais.";
+  const nCol=[...collapsed].filter(c=>people.has(c)&&parentsOf(c).length).length;
+  $("openAll").hidden=!nCol;$("openAll").textContent=nCol===1?"Abrir 1 ramo":"Abrir "+nCol+" ramos";
+  renderPanel();
+}
+const firstName=id=>{const n=name(id).split(" ");return n.length>1?n[0]+" "+n[n.length-1]:n[0]};
+function drawLines(L){
+  const tree=$("tree");
+  let svg='';
+  const vis=L.vis;
+  // linhas de filhos
+  const groups={};
+  vis.forEach(id=>{const ps=parentsOf(id).filter(v=>vis.has(v)&&!(L.straight&&collapsed.has(id))).sort();if(!ps.length)return;const k=ps.join("|");(groups[k]=groups[k]||[]).push(id)});
+  const rowCount={};
+  Object.entries(groups).forEach(([k,ch])=>{
+    const ps=k.split("|");
+    const ax=ps.length===2?((L.x[ps[0]]+L.x[ps[1]])/2+W/2):L.x[ps[0]]+W/2;
+    const sameRow=ps.length===2&&L.y[ps[0]]===L.y[ps[1]];
+    const adj=sameRow&&(L.straight||Math.abs(L.x[ps[0]]-L.x[ps[1]])<=W+GAP_IN+1);
+    const ay=adj?L.y[ps[0]]+H/2:Math.max(...ps.map(p=>L.y[p]))+H;
+    const g=L.gen[ch[0]];rowCount[g]=(rowCount[g]||0)+1;
+    const childTop=Math.min(...ch.map(c=>L.y[c]));
+    const busY=childTop-26-((rowCount[g]-1)%3)*9;
+    const xs=ch.map(c=>L.x[c]+W/2);
+    const lo=Math.min(ax,...xs),hi=Math.max(ax,...xs);
+    svg+=`<path d="M${ax},${ay}V${busY}M${lo},${busY}H${hi}${xs.map((cx,i)=>`M${cx},${busY}V${L.y[ch[i]]}`).join("")}"/>`;
+  });
+  // linhas de casal
+  const done=new Set();
+  vis.forEach(id=>(L.sp[id]||[]).forEach(s=>{
+    if(!vis.has(s))return;
+    const key=[id,s].sort().join("|");if(done.has(key))return;done.add(key);
+    const [a,b]=L.x[id]<L.x[s]?[id,s]:[s,id];
+    if(L.y[a]===L.y[b]&&(L.straight||L.x[b]-L.x[a]<=W+GAP_IN+1)){const cy=L.y[a]+H/2;svg+=`<path class="spouse" d="M${L.x[a]+W},${cy}H${L.x[b]}"/>`}
+    else if(L.y[a]===L.y[b]){const t=L.y[a],mx=(L.x[a]+L.x[b]+W)/2;svg+=`<path class="spouse far" d="M${L.x[a]+W/2},${t}Q${mx},${t-34} ${L.x[b]+W/2},${t}"/>`}
+    else{svg+=`<path class="spouse far" d="M${L.x[a]+W/2},${L.y[a]+H/2}L${L.x[b]+W/2},${L.y[b]+H/2}"/>`}
+  }));
+  const lines=$("lines");
+  lines.setAttribute("width",L.maxX);lines.setAttribute("height",L.maxY);
+  lines.innerHTML=svg;
+  $("gens").innerHTML=L.gens.map(g=>`<div class="gen" style="top:${TOP+g*ROWH+H/2-6}px">${ROMAN[g]||g+1}</div>`).join("");
+  tree.style.width=L.maxX+"px";tree.style.height=L.maxY+"px";
+  applyScale();
+}
+
+/* ---------- arrastar caixas e a tela ---------- */
+let drag=null,moveMode=false;
+function cardDown(e){
+  if(e.button!==undefined&&e.button!==0)return;
+  if(e.target.closest(".fold"))return;
+  const el=e.currentTarget,id=el.dataset.id;
+  const canMove=view==="toda"&&!readOnly&&(e.pointerType==="mouse"||e.pointerType==="pen"||moveMode);
+  drag={id,el,sx:e.clientX,sy:e.clientY,ox:pos.x[id],oy:pos.y[id],moved:false,canMove,pid:e.pointerId};
+  if(canMove){el.setPointerCapture(e.pointerId);e.stopPropagation()}
+  el.addEventListener("pointermove",cardMove);
+  el.addEventListener("pointerup",cardUp);
+  el.addEventListener("pointercancel",cardCancel);
+}
+function cardMove(e){
+  if(!drag||!drag.canMove)return;
+  const dx=(e.clientX-drag.sx)/scale,dy=(e.clientY-drag.sy)/scale;
+  if(!drag.moved&&Math.hypot(dx,dy)<5)return;
+  drag.moved=true;drag.el.classList.add("drag");
+  pos.x[drag.id]=Math.max(0,drag.ox+dx);pos.y[drag.id]=Math.max(0,drag.oy+dy);
+  drag.el.style.left=pos.x[drag.id]+"px";drag.el.style.top=pos.y[drag.id]+"px";
+  fitBounds(pos);drawLines(pos);
+}
+function cardEnd(el){el.removeEventListener("pointermove",cardMove);el.removeEventListener("pointerup",cardUp);el.removeEventListener("pointercancel",cardCancel);el.classList.remove("drag")}
+function cardCancel(){if(!drag)return;const d=drag;drag=null;cardEnd(d.el);if(d.moved){pos.x[d.id]=d.ox;pos.y[d.id]=d.oy;render()}}
+async function cardUp(){
+  if(!drag)return;
+  const d=drag;drag=null;cardEnd(d.el);
+  if(!d.moved){select(d.id);return}
+  const px=Math.round(pos.x[d.id]),py=Math.round(pos.y[d.id]);
+  try{await db.collection("pessoas").doc(d.id).update({px,py})}
+  catch(err){toast(errMsg(err));pos.x[d.id]=d.ox;pos.y[d.id]=d.oy;render()}
+}
+// arrastar o fundo move a tela (com o mouse; no celular o dedo já rola)
+(function(){
+  const sc=$("scroller");let pan=null;
+  sc.addEventListener("pointerdown",e=>{
+    if(e.pointerType!=="mouse"||e.button!==0||e.target.closest(".card,.empty button"))return;
+    pan={x:e.clientX,y:e.clientY,l:sc.scrollLeft,t:sc.scrollTop};sc.classList.add("pan");sc.setPointerCapture(e.pointerId);
+  });
+  sc.addEventListener("pointermove",e=>{if(!pan)return;sc.scrollLeft=pan.l-(e.clientX-pan.x);sc.scrollTop=pan.t-(e.clientY-pan.y)});
+  const stop=()=>{pan=null;sc.classList.remove("pan")};
+  sc.addEventListener("pointerup",stop);sc.addEventListener("pointercancel",stop);
+  // Ctrl + rodinha aproxima e afasta
+  sc.addEventListener("wheel",e=>{
+    if(!e.ctrlKey)return;e.preventDefault();
+    const r=sc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+    const wx=(sc.scrollLeft+mx)/scale,wy=(sc.scrollTop+my)/scale;
+    scale=Math.min(1.6,Math.max(0.35,+(scale*(e.deltaY<0?1.1:0.9)).toFixed(3)));applyScale();
+    sc.scrollLeft=wx*scale-mx;sc.scrollTop=wy*scale-my;
+  },{passive:false});
+})();
+$("vCam").onclick=()=>{view="caminho";saveView();render()};
+$("vHist").onclick=()=>{view="historia";saveView();render()};
+$("vToda").onclick=()=>{const t=cur||eu||focusId();focus=t;view="toda";saveView();selected=t;render();setTimeout(()=>focusOn(t),60)};
+function setEditing(on){
+  editing=!!on;document.body.classList.toggle("editing",editing);
+  const b=$("editToggle");b.classList.toggle("on",editing);b.setAttribute("aria-pressed",editing);b.textContent=editing?"Pronto":"Editar";
+  if(view==="caminho")renderJourney();else renderPanel();
+}
+$("editToggle").onclick=()=>setEditing(!editing);
+$("openAll").onclick=()=>{collapsed.clear();saveView();render()};
+$("moveMode").onclick=()=>{
+  moveMode=!moveMode;$("tree").classList.toggle("movemode",moveMode);
+  $("moveMode").classList.toggle("on",moveMode);$("moveMode").setAttribute("aria-pressed",moveMode);
+  toast(moveMode?"Arraste as caixas com o dedo. Toque em Mover de novo para voltar a rolar.":"Modo de mover desligado.");
+};
+$("relayout").onclick=async()=>{
+  const ids=[...people.keys()].filter(i=>typeof P(i).px==="number");
+  $("relayout").disabled=true;
+  try{for(const i of ids)await db.collection("pessoas").doc(i).update({px:null,py:null});toast("Caixas de volta ao lugar automático.")}
+  catch(err){toast(errMsg(err))}
+  $("relayout").disabled=false;
+};
+function applyScale(){
+  const t=$("tree");t.style.transform=`scale(${scale})`;
+  $("sizer").style.width=(pos.maxX||0)*scale+"px";$("sizer").style.height=(pos.maxY||0)*scale+"px";
+}
+function focusOn(id){
+  if(!pos.x||pos.x[id]==null)return;
+  const sc=$("scroller");
+  sc.scrollTo({left:(pos.x[id]+W/2)*scale-sc.clientWidth/2,top:(pos.y[id]+H/2)*scale-sc.clientHeight/2});
+}
+// leva até a pessoa: no caminho ela vira a pessoa da vez; na árvore, abre ramos se preciso
+function goTo(id){
+  if(!people.has(id))return;
+  if(view!=="toda"){cur=id;selected=id;if(view==="historia")view="caminho";saveView();render();$("jour").scrollTop=0;return}
+  if(!pos.vis||!pos.vis.has(id)){collapsed.clear();render();saveView()}
+  select(id);setTimeout(()=>focusOn(id),60);
+}
+function select(id){
+  selected=id;
+  document.querySelectorAll(".card").forEach(c=>c.classList.toggle("sel",c.dataset.id===id));
+  renderPanel();
+}
+
+/* ---------- ficha: partes que abrem ao tocar ---------- */
+let openSecs=new Set(["familia"]);
+try{const s=JSON.parse(localStorage.getItem("arvore-partes")||"null");if(Array.isArray(s))openSecs=new Set(s)}catch(e){}
+function saveSecs(){try{localStorage.setItem("arvore-partes",JSON.stringify([...openSecs]))}catch(e){}}
+function linkList(ids){
+  if(!ids.length)return '<span class="none">Ninguém registrado.</span>';
+  return ids.sort(byName).map(i=>`<button class="link" data-go="${escT(i)}">${escT(name(i))}</button>`).join(", ");
+}
+const firstLine=s=>String(s||"").split(/\n|(?<=\.)\s/)[0].slice(0,70);
+function sec(key,title,preview,body){
+  return `<details class="sec" data-sec="${key}"${openSecs.has(key)?" open":""}><summary><span class="t">${escT(title)}</span><span class="pv">${escT(preview||"")}</span></summary><div class="body">${body}</div></details>`;
+}
+function personBody(id){
+  const p=P(id);let h="";
+  const pai=p.pai&&people.has(p.pai)?[p.pai]:[],mae=p.mae&&people.has(p.mae)?[p.mae]:[];
+  const kids=childrenOf(id),sps=spousesOf(id),sibs=siblingsOf(id);
+  h+=sec("familia","Família",[sps.length?sps.length+(sps.length===1?" cônjuge":" cônjuges"):"",kids.length?kids.length+(kids.length===1?" filho":" filhos"):""].filter(Boolean).join(", "),
+    `<dl class="rel"><dt>Pai</dt><dd>${pai.length?linkList(pai):'<span class="none">Não sabemos.</span>'}</dd><dt>Mãe</dt><dd>${mae.length?linkList(mae):'<span class="none">Não sabemos.</span>'}</dd><dt>Cônjuge</dt><dd>${linkList(sps)}</dd><dt>Filhos</dt><dd>${linkList(kids)}</dd><dt>Irmãos</dt><dd>${linkList(sibs)}</dd></dl>`);
+  const show=(v)=>v||editing;
+  if(show(p.religiao))h+=sec("religiao","Religião",firstLine(p.religiao),p.religiao?`<p class="txt">${escT(p.religiao)}</p>`:'<p class="none">Nenhum registro achado.</p>');
+  if(show(p.trabalho||p.formacao))h+=sec("trabalho","Trabalho e formação",firstLine(p.trabalho||p.formacao),
+    (p.trabalho?`<p class="txt"><b>Trabalho.</b> ${escT(p.trabalho)}</p>`:"")+(p.formacao?`<p class="txt"><b>Formação.</b> ${escT(p.formacao)}</p>`:"")+(!p.trabalho&&!p.formacao?'<p class="none">Nenhum registro achado.</p>':""));
+  if(isDead(p)||editing){
+    const ag=ageOf(p);
+    h+=sec("morte","Morte",p.falecimento?(year(p.falecimento)||"")+(ag?" · "+(ag.approx?"cerca de ":"")+ag.a+" anos":""):"",
+      (p.falecimento&&p.falecimento!=="sim"?`<p>${escT(p.falecimento)}${ag?", aos "+(ag.approx?"cerca de ":"")+ag.a+" anos":""}.</p>`:"")+
+      `<p><b>Causa:</b> ${p.causaMorte?escT(p.causaMorte):'<span class="none">não aparece nas fontes achadas.</span>'}</p>`);
+  }
+  if(show(p.feitos))h+=sec("feitos","Histórias e feitos",firstLine(p.feitos),p.feitos?`<p class="txt">${escT(p.feitos)}</p>`:'<p class="none">Nada registrado ainda.</p>');
+  const fotos=(p.fotos||[]).filter(Boolean);
+  if(fotos.length||editing)h+=sec("fotos","Fotos",fotos.length?fotos.length+(fotos.length===1?" foto":" fotos"):"",
+    (fotos.length?`<div class="photos">${fotos.map(a=>`<figure><img src="${photoUrl(a)}" alt="Foto de ${escT(p.nome||"")}" loading="lazy"><span class="edonly row">${p.foto===a?'<span class="hint" style="font-size:12px">Principal</span>':`<button class="btn mini" data-main="${escT(a)}">Principal</button>`}<button class="btn mini" data-unph="${escT(a)}">Tirar</button></span></figure>`).join("")}</div>`:'<p class="none">Nenhuma foto ainda.</p>')+
+    (assets?`<label class="btn upl edonly">Adicionar foto<input type="file" accept="image/*" data-up="${escT(id)}"></label>`:""));
+  if(p.notas)h+=sec("fontes","Fontes e notas","",`<p class="txt src" style="font-size:13px">${escT(p.notas)}</p>`);
+  if(!readOnly&&canEd)h+=`<div style="margin-top:14px"><p class="label">Adicionar parente</p><div class="adds">
+      ${pai.length?"":'<button class="btn" data-add="pai">+ Pai</button>'}${mae.length?"":'<button class="btn" data-add="mae">+ Mãe</button>'}
+      <button class="btn" data-add="conjuge">+ Cônjuge</button><button class="btn" data-add="filho">+ Filho ou filha</button><button class="btn" data-add="irmao">+ Irmão ou irmã</button></div>
+      <div class="row edonly"><button class="btn" data-edit="${escT(id)}">Editar dados</button><button class="btn danger" data-del="${escT(id)}">Apagar</button></div></div>`;
+  return h;
+}
+function wireBody(root,id){
+  root.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
+  root.querySelectorAll("details.sec").forEach(d=>d.addEventListener("toggle",()=>{if(d.open)openSecs.add(d.dataset.sec);else openSecs.delete(d.dataset.sec);saveSecs()}));
+  root.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>openForm(null,{kind:b.dataset.add,of:id}));
+  root.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openForm(id,null));
+  root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>confirmDelete(id));
+  root.querySelectorAll("[data-main]").forEach(b=>b.onclick=()=>patch(id,{foto:b.dataset.main},"Foto principal trocada."));
+  root.querySelectorAll("[data-unph]").forEach(b=>b.onclick=()=>{const a=b.dataset.unph,p=P(id),list=(p.fotos||[]).filter(x=>x!==a);patch(id,{fotos:list,foto:p.foto===a?(list[0]||null):p.foto},"Foto tirada da ficha.")});
+  root.querySelectorAll("[data-up]").forEach(inp=>inp.onchange=async()=>{
+    const f=inp.files&&inp.files[0];if(!f||!assets)return;
+    toast("Enviando a foto...");
+    try{await snap("Foto adicionada ("+name(id)+")");const r=await assets.upload(f);const p=P(id);const list=[...(p.fotos||[]),r.id];await db.collection("pessoas").doc(id).update({fotos:list,foto:p.foto||r.id});toast("Foto adicionada.")}
+    catch(err){toast("A foto não subiu. Tente uma imagem menor que 20 MB.")}
+  });
+}
+async function patch(id,data,msg){try{await snap(msg.replace(/\.$/,"")+" ("+name(id)+")");await db.collection("pessoas").doc(id).update(data);toast(msg)}catch(err){toast(errMsg(err))}}
+function picHtml(p,cls){return p.foto?`<div class="${cls}" style="background-image:url('${photoUrl(p.foto)}')" role="img" aria-label="Foto de ${escT(p.nome||"")}"></div>`:`<div class="${cls}" aria-hidden="true">${escT(initials(p.nome))}</div>`}
+function lifeLong(p){
+  const born=[p.nascimento,p.localNascimento].filter(Boolean).join(", ");
+  return [born?"Nasceu em "+born:"",p.falecimento&&p.falecimento!=="sim"?"morreu em "+p.falecimento:p.falecimento?"já falecido":""].filter(Boolean).join(" · ")+(ageTxt(p)?" "+ageTxt(p):"");
+}
+function renderPanel(){
+  const pn=$("panel");
+  if(view!=="toda"||!selected||!people.has(selected)){pn.hidden=true;return}
+  const p=P(selected);pn.hidden=false;pn.className="panel "+sexCls(p);
+  const k=kinLabel(selected);
+  pn.innerHTML=`<button class="btn icon close" id="pClose" aria-label="Fechar ficha">×</button>
+    <div class="phead">${picHtml(p,"pic")}<div><h2>${escT(p.nome||"Sem nome")}</h2>${k?`<p class="kin">${escT(k)}</p>`:""}</div></div>
+    <p class="life">${escT(lifeLong(p)||"Sem datas ainda.")}</p>
+    ${personBody(selected)}
+    <div class="row" style="margin-top:14px"><button class="btn" id="pCam">Abrir no caminho</button>${selected!==focusId()?'<button class="btn" id="pRoot">Começar a árvore por aqui</button>':""}</div>`;
+  wireBody(pn,selected);
+  $("pClose").onclick=()=>{selected=null;select(null)};
+  $("pCam").onclick=()=>{cur=selected;view="caminho";saveView();render()};
+  const pr=$("pRoot");if(pr)pr.onclick=()=>{const id=selected;focus=id;opened.clear();collapsed.clear();saveView();render();setTimeout(()=>focusOn(id),60)};
+}
+
+/* ---------- caminho: uma pessoa por vez, subindo ---------- */
+let trail=[];
+function eraFor(y){
+  const e=$("era");if(!y){e.hidden=true;return}
+  e.hidden=false;$("eraC").textContent=centuryOf(y);$("eraY").textContent=y;
+}
+function tintFor(y){
+  // quanto mais antigo, mais o fundo puxa para o tom de papel velho
+  y=+y||2000;const t=Math.max(0,Math.min(1,(2000-y)/220));
+  return `color-mix(in srgb,var(--hist) ${Math.round(t*16)}%,transparent)`;
+}
+function miniBtn(id,label){
+  const p=P(id);
+  return `<button class="mini ${sexCls(p)}" data-go="${escT(id)}"><span class="av" ${p.foto?`style="background-image:url('${photoUrl(p.foto)}')"`:""}>${p.foto?"":escT(initials(p.nome))}</span><span><span class="k">${escT(label)}</span><br><span class="nm">${escT(p.nome||"Sem nome")}</span><br><span class="yy">${escT(lifeShort(p))}</span></span></button>`;
+}
+function renderJourney(){
+  const j=$("jour");
+  if(!cur||!people.has(cur))cur=(eu&&people.has(eu))?eu:focusId();
+  const p=P(cur);
+  // trilha: de quem começou até a pessoa da vez
+  const ix=trail.indexOf(cur);
+  if(ix>=0)trail=trail.slice(0,ix+1);
+  else if(trail.length&&parentsOf(trail[trail.length-1]).includes(cur))trail.push(cur);
+  else trail=[cur];
+  const pai=p.pai&&people.has(p.pai)?p.pai:null,mae=p.mae&&people.has(p.mae)?p.mae:null;
+  const below=trail.length>1?trail[trail.length-2]:null;
+  const k=kinLabel(cur);
+  j.style.setProperty("--tint",tintFor(year(p.nascimento)));
+  j.innerHTML=`<div class="col in">
+    ${trail.length>1?`<div class="trail">${trail.map((t,i)=>i===trail.length-1?`<span>${escT(firstName(t))}</span>`:`<button data-go="${escT(t)}">${escT(firstName(t))}</button><span aria-hidden="true">↑</span>`).join(" ")}</div>`:""}
+    ${pai||mae?`<p class="upHint">Toque para subir ${p.sexo==="f"?"pela família dela":"pela família dele"}</p>`:""}
+    <div class="ups">${pai?miniBtn(pai,"Pai"):'<div class="mini unk"><span>Pai: ainda não sabemos</span></div>'}${mae?miniBtn(mae,"Mãe"):'<div class="mini unk"><span>Mãe: ainda não sabemos</span></div>'}</div>
+    <article class="big ${sexCls(p)}">
+      <div class="phead">${picHtml(p,"pic")}<div><div class="ribbon"><h2>${escT(p.nome||"Sem nome")}</h2></div>${k?`<p class="kin">${escT(k)}</p>`:""}</div></div>
+      <p class="life">${escT(lifeLong(p)||"Sem datas ainda.")}</p>
+      ${personBody(cur)}
+    </article>
+    ${below?`<div class="downs"><span class="lab">DESCER</span>${miniBtn(below,"Voltar para")}</div>`:""}
+    <div class="row" style="justify-content:center"><button class="linkbtn" id="jTree">Ver a árvore a partir ${p.sexo==="f"?"dela":"dele"}</button></div>
+  </div>`;
+  wireBody(j,cur);
+  $("jTree").parentElement.hidden=!canEd;
+  $("jTree").onclick=()=>{selected=cur;focus=cur;view="toda";saveView();render();setTimeout(()=>focusOn(cur),60)};
+  eraAnim(year(p.nascimento)||year(p.falecimento));
+}
+
+/* ---------- linha do tempo ---------- */
+// fatos históricos conferidos em fontes abertas (Wikipédia em português), para dar contexto à família
+const HIST=[
+  {y:1720,t:"Stettin, onde a família Göcking aparece em 1821, sai do domínio sueco e passa à Prússia.",s:"Wikipédia, Szczecin"},
+  {y:1822,t:"Independência do Brasil, em 7 de setembro, às margens do Ipiranga.",s:"Wikipédia, Independência do Brasil"},
+  {y:1847,t:"Teófilo Otoni funda a Companhia de Comércio e Navegação do Mucuri, que vai trazer colonos ao nordeste de Minas.",s:"Wikipédia, Teófilo Otoni"},
+  {y:1853,t:"Em 7 de setembro nasce Filadélfia, o núcleo que vira a cidade de Teófilo Otoni.",s:"Wikipédia, Teófilo Otoni"},
+  {y:1856,t:"Chegam a Filadélfia os primeiros colonos alemães e suíços.",s:"Wikipédia, Teófilo Otoni"},
+  {y:1888,t:"Lei Áurea, assinada pela princesa Isabel em 13 de maio, acaba com a escravidão no Brasil.",s:"Wikipédia, Lei Áurea"},
+  {y:1938,t:"Começa a Campanha de Nacionalização do Estado Novo: ensino só em português e escolas com nomes brasileiros. Em 1939 fica proibido falar língua estrangeira em público.",s:"Wikipédia, Campanha de nacionalização"},
+  {y:1942,t:"O Brasil entra na Segunda Guerra Mundial e a repressão a alemães e descendentes aumenta.",s:"Wikipédia, Campanha de nacionalização"},
+  {y:1945,t:"Stettin deixa de ser alemã e passa à Polônia, como Szczecin.",s:"Wikipédia, Szczecin"}
+];
+function lineIds(){
+  const base=(eu&&people.has(eu))?eu:focusId();
+  return [base,...ancestorsOf(base)];
+}
+const CCOL=["#c97b6b","#6f9a5b","#d4924a","#5b7fb3","#9a6fb0"];
+let tmObs=null,playing=false,playRaf=0,eraShown=0,eraRaf=0;
+function eraAnim(y){
+  // o ano do canto corre até o novo valor, como contador de filme
+  y=+y;if(!y)return;
+  const e=$("era");e.hidden=false;$("eraC").textContent=centuryOf(y);
+  if(!eraShown||matchMedia("(prefers-reduced-motion: reduce)").matches){eraShown=y;$("eraY").textContent=y;return}
+  cancelAnimationFrame(eraRaf);const from=eraShown,t0=performance.now();
+  const step=t=>{const k=Math.min(1,(t-t0)/500);const v=Math.round(from+(y-from)*k);$("eraY").textContent=v;if(k<1)eraRaf=requestAnimationFrame(step);else eraShown=y};
+  eraRaf=requestAnimationFrame(step);
+}
+function stopPlay(){playing=false;cancelAnimationFrame(playRaf);const b=$("tmPlay");if(b){b.classList.remove("on");b.textContent="▶ Assistir como filme"}}
+function startPlay(){
+  const t=$("tmX");playing=true;const b=$("tmPlay");b.classList.add("on");b.textContent="❚❚ Pausar";
+  let last=performance.now();
+  const step=now=>{if(!playing)return;const dt=now-last;last=now;t.scrollLeft+=dt*0.09;
+    if(t.scrollLeft+t.clientWidth>=t.scrollWidth-2){stopPlay();return}playRaf=requestAnimationFrame(step)};
+  playRaf=requestAnimationFrame(step);
+}
+function renderTempo(){
+  stopPlay();
+  const t=$("tempo");const ids=lineIds();const ev=[];
+  ids.forEach(id=>{
+    const p=P(id);const by=year(p.nascimento),dy=year(p.falecimento);
+    if(by)ev.push({y:+by,id,k:"n",t:"nasce"+(p.localNascimento?" em "+p.localNascimento:"")});
+    (p.marcos||[]).forEach(m=>{if(m&&m.ano)ev.push({y:+m.ano,id,k:/^casa/.test(m.texto||"")?"c":"m",t:m.texto})});
+    if(dy){const ag=ageOf(p);ev.push({y:+dy,id,k:"d",t:"morre"+(ag?", aos "+(ag.approx?"cerca de ":"")+ag.a+" anos":"")+(p.falecimento.includes(",")?" ("+p.falecimento.split(",").slice(1).join(",").replace(/^\s*em\s*/,"").trim()+")":"")})}
+  });
+  const minY=Math.min(...ev.map(e=>e.y),2000);
+  HIST.forEach((h,i)=>{if(h.y>=minY-110)ev.push({y:h.y,hist:true,t:h.t,s:h.s})});
+  ev.sort((a,b)=>a.y-b.y||(a.hist?1:0)-(b.hist?1:0));
+  const ICO={n:"✶",d:"✝",c:"⚭",m:"✦"};
+  const chaps=[];ev.forEach(e=>{const c=Math.ceil(e.y/100);let ch=chaps[chaps.length-1];if(!ch||ch.c!==c){ch={c,ev:[]};chaps.push(ch)}ch.ev.push(e)});
+  let side=0,nh=0;
+  const base=ids[0];
+  const html=chaps.map((ch,ci)=>{
+    const fam=ch.ev.filter(e=>!e.hist).length,his=ch.ev.length-fam;
+    const items=ch.ev.map(e=>{
+      const cls=(side++%2?"d":"u");
+      if(e.hist){nh++;return `<div class="tm-ev tm-hist ${cls} pre" data-y="${e.y}"><div class="tm-card"><span class="tm-seal">${nh}</span><span><span class="tm-y">${e.y}</span><span class="lab">Na história</span><span class="tm-tx">${escT(e.t)}</span><span class="tm-src">${escT(e.s)}</span></span></div></div>`}
+      const p=P(e.id);
+      return `<div class="tm-ev ${sexCls(p)} ${cls} pre" data-y="${e.y}"><button class="tm-card" data-go="${escT(e.id)}"><span class="tm-medal" ${p.foto?`style="background-image:url('${photoUrl(p.foto)}')"`:""}>${p.foto?"":escT(initials(p.nome))}</span><span><span class="tm-y">${e.y}</span><br><span class="tm-nm">${escT(p.nome||"")}</span><br><span class="tm-tx"><span class="tm-ico" aria-hidden="true">${ICO[e.k]}</span>${escT(e.t)}</span>${kinLabel(e.id)?`<span class="tm-src">${escT(kinLabel(e.id))}</span>`:""}</span></button></div>`;
+    }).join("");
+    return `<section class="tm-chap" data-c="${ch.c}" style="--c:${CCOL[ci%CCOL.length]}"><div class="tm-rail"><span>Século ${ROMAN[ch.c-1]||ch.c}</span></div>
+      <div class="tm-track"><div class="tm-slate"><b>${ROMAN[ch.c-1]||ch.c}</b><span>${fam} ${fam===1?"acontecimento":"acontecimentos"} da família${his?" e "+his+(his===1?" fato":" fatos")+" da história":""}</span></div>${items}</div></section>`;
+  }).join("");
+  t.innerHTML=`<div class="tm-head"><div class="tx"><div class="eyebrow">Linha do tempo</div><h2>A história ${base===eu?"da sua família":"da família de "+escT(firstName(base))}</h2><p>Arraste a linha do tempo e o globo vai junto, mostrando onde a família estava. O globo também gira com o dedo.</p></div><button class="tm-play" id="tmPlay">▶ Assistir como filme</button></div><div class="hs-globe" id="hsG"><svg id="hsSvg" role="img" aria-label="Globo com os lugares onde a família estava"></svg><div class="hs-msg" id="hsMsg">Abrindo o globo...</div><p class="hs-hint">Arraste para girar</p><div class="hs-cap" id="hsCap"></div></div><div class="tm-x" id="tmX"><div class="tm-row">${html}<p class="tm-end">E a história continua com você.</p></div></div>`;
+  const tx=$("tmX");
+  t.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{stopPlay();goTo(b.dataset.go)});
+  $("tmPlay").onclick=()=>playing?stopPlay():startPlay();
+  ["touchstart","keydown","pointerdown"].forEach(k=>tx.addEventListener(k,()=>{if(playing)stopPlay()},{passive:true}));
+  tx.addEventListener("wheel",e=>{if(playing)stopPlay();if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){tx.scrollLeft+=e.deltaY;e.preventDefault()}},{passive:false});
+  (function(){let dr=null;tx.addEventListener("pointerdown",e=>{if(e.pointerType!=="mouse"||e.target.closest("button"))return;dr={x:e.clientX,l:tx.scrollLeft};tx.setPointerCapture(e.pointerId);tx.style.cursor="grabbing"});tx.addEventListener("pointermove",e=>{if(dr)tx.scrollLeft=dr.l-(e.clientX-dr.x)});const up=()=>{dr=null;tx.style.cursor=""};tx.addEventListener("pointerup",up);tx.addEventListener("pointercancel",up)})();
+  const evs=[...t.querySelectorAll(".tm-ev")];
+  if(tmObs)tmObs.disconnect();
+  if("IntersectionObserver" in window){tmObs=new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){x.target.classList.remove("pre");tmObs.unobserve(x.target)}}),{root:tx,rootMargin:"0px -6% 0px 0px"});evs.forEach(e=>tmObs.observe(e))}
+  else evs.forEach(e=>e.classList.remove("pre"));
+  const upd=()=>{const mid=tx.getBoundingClientRect().left+tx.clientWidth*0.5;let cy=evs.length?evs[0].dataset.y:"";for(const e of evs){if(e.getBoundingClientRect().left<=mid)cy=e.dataset.y;else break}
+    $("era").hidden=true;if(cy)globeYear(+cy);t.style.setProperty("--tint",tintFor(cy))};
+  tx.onscroll=upd;eraShown=0;GL=GL&&{rot:GL.rot,sc:GL.sc};globeSetup(+(evs[0]&&evs[0].dataset.y)||1800);upd();
+}
+
+/* ---------- quem é você? ---------- */
+function showWho(){
+  const w=$("who");w.hidden=false;$("whoQ").value="";$("whoHits").innerHTML="";whoFams();
+}
+const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLocaleLowerCase("pt-BR");
+const FAMS=[["Gocking",/goe?cking/,"Göcking, Goecking"],["Melo",/\bmell?o\b/,"Melo, Mello"],["Nogueira",/nogueira/,""],["Barbosa",/barbosa/,""],["Storch",/storch/,""],["Leal",/\bleal\b/,""],["Fajardo",/fajardo/,""]];
+let whoFam=null;
+function famIds(f){return [...people.keys()].filter(i=>!f||f[1].test(norm(name(i)))).sort(byName)}
+function whoFams(){
+  whoFam=null;$("whoStep2").hidden=true;$("whoFams").hidden=false;$("whoT").textContent="Qual é a sua família?";$("whoP").textContent="Toque no sobrenome da sua família. Depois você escolhe o seu nome.";
+  const fs=FAMS.map(f=>[f,famIds(f).length]).filter(x=>x[1]>0);
+  $("whoFams").innerHTML=fs.map(([f,n],i)=>`<button data-f="${i}"><b>${escT(f[0])}</b><small>${n} ${n===1?"pessoa":"pessoas"}${f[2]?" · "+escT(f[2]):""}</small></button>`).join("")+'<button class="other" data-f="-1"><b>Outra família</b><small>procurar pelo nome</small></button>';
+  const list=fs.map(x=>x[0]);
+  $("whoFams").querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>whoPick(+b.dataset.f<0?null:list[+b.dataset.f]));
+}
+function whoPick(f){
+  whoFam=f;$("whoFams").hidden=true;$("whoStep2").hidden=false;$("whoQ").value="";
+  $("whoT").textContent=f?"Família "+f[0]:"Quem é você?";$("whoP").textContent=f?"Agora toque no seu nome.":"Escreva seu nome.";
+  whoList();if(!f)setTimeout(()=>$("whoQ").focus(),40);
+}
+function whoList(){
+  const q=norm($("whoQ").value.trim());const r=$("whoHits");
+  if(!whoFam&&q.length<2){r.innerHTML="";return}
+  const hits=famIds(whoFam).filter(i=>!q||norm(name(i)).includes(q)).slice(0,whoFam?200:10);
+  r.innerHTML=hits.length?hits.map(i=>{const p=P(i);return `<button class="${sexCls(p)}" data-me="${escT(i)}"><span class="av" ${p.foto?`style="background-image:url('${photoUrl(p.foto)}')"`:""}>${p.foto?"":escT(initials(p.nome))}</span><span>${escT(p.nome)}<small>${escT(lifeShort(p))}</small></span></button>`}).join(""):'<button disabled>Ninguém com esse nome ainda. Peça para incluírem você.</button>';
+  r.querySelectorAll("[data-me]").forEach(b=>b.onclick=()=>{
+    eu=b.dataset.me;try{localStorage.setItem("arvore-eu",eu)}catch(e){}
+    cur=eu;trail=[];selected=eu;view="caminho";saveView();$("who").hidden=true;render();
+    toast("Bem-vindo, "+firstName(eu).split(" ")[0]+". Toque no pai ou na mãe para subir.");
+  });
+}
+$("whoQ").oninput=whoList;
+$("whoBack").onclick=whoFams;
+$("whoSkip").onclick=()=>{$("who").hidden=true;if(!eu){view=canEd?"toda":"caminho";saveView()}render()};
+$("whoBtn").onclick=showWho;
+
+/* ---------- formulário ---------- */
+const KIND_TITLE={pai:"Adicionar pai",mae:"Adicionar mãe",conjuge:"Adicionar cônjuge",filho:"Adicionar filho ou filha",irmao:"Adicionar irmão ou irmã"};
+function personOptions(sel,exclude){
+  const ids=[...people.keys()].filter(i=>i!==exclude).sort(byName);
+  return '<option value="">Ninguém ou não sei</option>'+ids.map(i=>`<option value="${escT(i)}"${i===sel?" selected":""}>${escT(name(i))}${year(P(i).nascimento)?" ("+year(P(i).nascimento)+")":""}</option>`).join("");
+}
+function openForm(editId,ctx){
+  const ov=$("overlay");
+  const base=editId?Object.assign({},P(editId)):{nome:"",sexo:"",nascimento:"",localNascimento:"",falecimento:"",notas:"",pai:"",mae:"",conjuges:[]};
+  let sub="";
+  if(ctx){
+    const of=P(ctx.of);const ofName=name(ctx.of);
+    if(ctx.kind==="pai"){base.sexo="m";sub="Pai de "+ofName+"."}
+    if(ctx.kind==="mae"){base.sexo="f";sub="Mãe de "+ofName+"."}
+    if(ctx.kind==="conjuge"){base.conjuges=[ctx.of];sub="Cônjuge de "+ofName+"."}
+    if(ctx.kind==="irmao"){base.pai=of.pai||"";base.mae=of.mae||"";sub="Irmão ou irmã de "+ofName+". Confira o pai e a mãe abaixo."}
+    if(ctx.kind==="filho"){
+      const sps=spousesOf(ctx.of);const other=sps.length===1?sps[0]:"";
+      const ofIsMother=of.sexo==="f";
+      if(ofIsMother){base.mae=ctx.of;base.pai=other}else{base.pai=ctx.of;base.mae=other}
+      sub="Filho ou filha de "+ofName+". Confira o pai e a mãe abaixo.";
+    }
+  }
+  let spouses=(base.conjuges||[]).filter(i=>people.has(i));
+  const title=editId?"Editar "+(base.nome||"pessoa"):(ctx?KIND_TITLE[ctx.kind]:"Adicionar pessoa");
+  ov.innerHTML=`<form class="dialog" id="pf" novalidate>
+    <h2>${escT(title)}</h2>${sub?`<p class="sub">${escT(sub)}</p>`:'<p class="sub">Só o nome é obrigatório. O resto você completa quando souber.</p>'}
+    <div class="f"><label for="fNome">Nome completo</label><input id="fNome" value="${escT(base.nome)}" autocomplete="off"><p class="warn" id="fNomeW" hidden>Escreva pelo menos o primeiro nome.</p></div>
+    <div class="f"><span class="lb">Sexo</span><div class="seg">
+      <label><input type="radio" name="fSexo" id="fSexoM" value="m"${base.sexo==="m"?" checked":""}>Homem</label>
+      <label><input type="radio" name="fSexo" id="fSexoF" value="f"${base.sexo==="f"?" checked":""}>Mulher</label>
+      <label><input type="radio" name="fSexo" id="fSexoN" value=""${!base.sexo?" checked":""}>Não informar</label></div></div>
+    <div class="two">
+      <div class="f"><label for="fNasc">Nascimento</label><input id="fNasc" value="${escT(base.nascimento)}" placeholder="1952 ou 12/03/1952" inputmode="numeric"></div>
+      <div class="f"><label for="fLocal">Onde nasceu</label><input id="fLocal" value="${escT(base.localNascimento)}" placeholder="Cidade, estado"></div>
+    </div>
+    <div class="f"><label for="fFal">Falecimento, se já faleceu</label><input id="fFal" value="${escT(base.falecimento)}" placeholder="2010, ou só “sim” se não souber a data"></div>
+    <div class="two">
+      <div class="f"><label for="fPai">Pai</label><select id="fPai">${personOptions(base.pai,editId)}</select></div>
+      <div class="f"><label for="fMae">Mãe</label><select id="fMae">${personOptions(base.mae,editId)}</select></div>
+    </div>
+    <div class="f"><span class="lb">Cônjuge</span><div class="chips" id="fChips"></div><select id="fSpAdd" aria-label="Adicionar cônjuge"></select></div>
+    <div class="f"><label for="fRel">Religião</label><input id="fRel" value="${escT(base.religiao||"")}" placeholder="Luterana, católica... e de onde vem a informação"></div>
+    <div class="two">
+      <div class="f"><label for="fTrab">Trabalho</label><textarea id="fTrab" placeholder="Profissão, onde trabalhou">${escT(base.trabalho||"")}</textarea></div>
+      <div class="f"><label for="fForm">Formação</label><textarea id="fForm" placeholder="Escola, faculdade, cursos">${escT(base.formacao||"")}</textarea></div>
+    </div>
+    <div class="f"><label for="fCausa">Causa da morte</label><input id="fCausa" value="${escT(base.causaMorte||"")}" placeholder="Só se houver registro ou relato da família"></div>
+    <div class="f"><label for="fFeitos">Histórias e feitos</label><textarea id="fFeitos" placeholder="O que a família conta, o que essa pessoa fez">${escT(base.feitos||"")}</textarea></div>
+    <div class="f"><label for="fNotas">Fontes e notas</label><textarea id="fNotas" placeholder="De onde vem cada informação">${escT(base.notas)}</textarea></div>
+    <div class="actions"><button type="button" class="btn" id="fCancel">Cancelar</button><button type="submit" class="btn primary" id="fSave">Salvar</button></div>
+  </form>`;
+  ov.hidden=false;
+  const drawSp=()=>{
+    $("fChips").innerHTML=spouses.map(i=>`<span class="chip">${escT(name(i))}<button type="button" data-rm="${escT(i)}" aria-label="Tirar ${escT(name(i))}">×</button></span>`).join("");
+    $("fChips").querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{spouses=spouses.filter(x=>x!==b.dataset.rm);drawSp()});
+    const opts=[...people.keys()].filter(i=>i!==editId&&!spouses.includes(i)).sort(byName);
+    $("fSpAdd").innerHTML='<option value="">'+(spouses.length?"Adicionar outro cônjuge":"Escolher cônjuge")+'</option>'+opts.map(i=>`<option value="${escT(i)}">${escT(name(i))}</option>`).join("");
+  };
+  drawSp();
+  $("fSpAdd").onchange=e=>{if(e.target.value){spouses.push(e.target.value);drawSp()}};
+  $("fCancel").onclick=closeForm;
+  ov.onclick=e=>{if(e.target===ov)closeForm()};
+  setTimeout(()=>$("fNome").focus(),30);
+  $("pf").onsubmit=async e=>{
+    e.preventDefault();
+    const nome=$("fNome").value.trim();
+    if(!nome){$("fNomeW").hidden=false;$("fNome").focus();return}
+    const sx=document.querySelector('input[name="fSexo"]:checked');
+    const data={nome,sexo:sx?sx.value:"",nascimento:$("fNasc").value.trim(),localNascimento:$("fLocal").value.trim(),
+      falecimento:$("fFal").value.trim(),pai:$("fPai").value,mae:$("fMae").value,conjuges:spouses.slice(),notas:$("fNotas").value.trim(),
+      religiao:$("fRel").value.trim(),trabalho:$("fTrab").value.trim(),formacao:$("fForm").value.trim(),causaMorte:$("fCausa").value.trim(),feitos:$("fFeitos").value.trim()};
+    $("fSave").disabled=true;$("fSave").textContent="Salvando...";
+    try{
+      const id=await savePerson(editId,data,ctx);
+      closeForm();selected=id;render();
+      goTo(id);
+      toast(editId?"Dados salvos.":nome+" entrou na árvore.");
+    }catch(err){
+      $("fSave").disabled=false;$("fSave").textContent="Salvar";
+      toast(errMsg(err));
+    }
+  };
+  document.addEventListener("keydown",escClose);
+}
+function escClose(e){if(e.key==="Escape")closeForm()}
+function closeForm(){$("overlay").hidden=true;$("overlay").innerHTML="";document.removeEventListener("keydown",escClose)}
+function errMsg(err){
+  const c=err&&err.code;
+  if(c==="invalid_argument"){readOnly=true;return "Não deu para salvar: esta conta só pode ver a árvore."}
+  if(c==="quota_exceeded")return "A árvore chegou ao limite de espaço. Apague alguém repetido e tente de novo.";
+  return "Não deu para salvar agora. Confira a internet e tente de novo.";
+}
+
+/* ---------- gravação ---------- */
+async function savePerson(editId,data,ctx){
+  if(!db)throw{code:"unavailable"};
+  await snap(editId?"Mudou os dados de "+name(editId):"Adicionou "+(data.nome||"uma pessoa"));
+  const col=db.collection("pessoas");
+  const ref=editId?col.doc(editId):col.doc();
+  const id=ref.id;
+  const old=editId?(P(editId).conjuges||[]):[];
+  const oldAll=editId?spousesOf(editId).filter(s=>(P(s).conjuges||[]).includes(editId)||old.includes(s)):[];
+  data.atualizado=new Date().toISOString();
+  if(!editId)data.criado=data.atualizado;
+  else{const o=P(editId);Object.keys(o).forEach(k=>{if(!(k in data)&&o[k]!=null)data[k]=o[k]})}
+  await ref.set(data);
+  // cônjuge vale para os dois lados
+  for(const s of data.conjuges){
+    const sp=P(s);if(!sp)continue;
+    const list=sp.conjuges||[];
+    if(!list.includes(id))await col.doc(s).update({conjuges:[...list,id]});
+  }
+  for(const s of oldAll){
+    if(data.conjuges.includes(s))continue;
+    const sp=P(s);if(!sp)continue;
+    if((sp.conjuges||[]).includes(id))await col.doc(s).update({conjuges:sp.conjuges.filter(x=>x!==id)});
+  }
+  if(ctx&&(ctx.kind==="pai"||ctx.kind==="mae")&&people.has(ctx.of)){
+    await col.doc(ctx.of).update({[ctx.kind]:id});
+  }
+  return id;
+}
+function confirmDelete(id){
+  const ov=$("overlay");const nm=name(id);
+  const kids=childrenOf(id).length;
+  ov.innerHTML=`<div class="dialog" role="alertdialog" aria-labelledby="dT"><h2 id="dT">Apagar ${escT(nm)}?</h2>
+    <p class="sub">A pessoa sai da árvore e não dá para desfazer.${kids?` ${kids===1?"O filho continua":"Os "+kids+" filhos continuam"} na árvore, só sem essa ligação.`:""}</p>
+    <div class="actions"><button class="btn" id="dNo">Cancelar</button><button class="btn primary" id="dYes" style="background:var(--danger);border-color:var(--danger)">Apagar</button></div></div>`;
+  ov.hidden=false;
+  $("dNo").onclick=closeForm;ov.onclick=e=>{if(e.target===ov)closeForm()};
+  document.addEventListener("keydown",escClose);
+  $("dYes").onclick=async()=>{
+    $("dYes").disabled=true;
+    try{
+      await snap("Apagou "+nm);
+      const col=db.collection("pessoas");
+      for(const [k,p] of people){
+        if(k===id)continue;
+        const patch={};
+        if(p.pai===id)patch.pai="";
+        if(p.mae===id)patch.mae="";
+        if((p.conjuges||[]).includes(id))patch.conjuges=p.conjuges.filter(x=>x!==id);
+        if(Object.keys(patch).length)await col.doc(k).update(patch);
+      }
+      await col.doc(id).delete();
+      closeForm();selected=null;toast(nm+" saiu da árvore.");
+    }catch(err){closeForm();toast(errMsg(err))}
+  };
+}
+
+/* ---------- versões: cópia da árvore inteira antes de cada mudança ---------- */
+const KEEP=80;
+async function snap(acao){
+  if(!db||!people.size)return;
+  try{const o={};people.forEach((p,k)=>{o[k]=p});
+    await db.collection("versoes").doc().set({quando:new Date().toISOString(),acao:String(acao||"Mudança"),n:people.size,pessoas:JSON.stringify(o)})}
+  catch(e){}
+}
+function fmtQ(iso){const d=new Date(iso);return isNaN(d)?"":d.toLocaleDateString("pt-BR")+" às "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+async function openHist(){
+  if(!db||readOnly){toast("Esta conta só pode ver a árvore.");return}
+  const ov=$("overlay");
+  ov.innerHTML='<div class="dialog" role="dialog" aria-labelledby="hT"><h2 id="hT">Voltar atrás</h2><p class="sub">Antes de cada mudança a árvore guarda uma cópia de como estava. Escolha uma e tudo volta a ficar daquele jeito.</p><div id="hL"><p class="hint">Carregando...</p></div><div class="actions"><button class="btn" id="hX">Fechar</button></div></div>';
+  ov.hidden=false;$("hX").onclick=closeForm;ov.onclick=e=>{if(e.target===ov)closeForm()};document.addEventListener("keydown",escClose);
+  let vs=[];
+  try{const q=await db.collection("versoes").orderBy("quando","desc").limit(200).get();vs=q.docs.map(d=>({id:d.id,...d.data()}))}
+  catch(e){$("hL").innerHTML='<p class="warn">Não deu para abrir as versões agora. Confira a internet e tente de novo.</p>';return}
+  if(vs.length>KEEP){for(const v of vs.slice(KEEP)){try{await db.collection("versoes").doc(v.id).delete()}catch(e){}}vs=vs.slice(0,KEEP)}
+  if(!vs.length){$("hL").innerHTML='<p class="hint">Ainda não há nenhuma cópia guardada. Ela aparece aqui depois da primeira mudança.</p>';return}
+  $("hL").innerHTML='<div class="hist">'+vs.map((v,i)=>`<div class="it"><div class="tx"><span class="q">${escT(fmtQ(v.quando))}</span><small>Como estava antes de: ${escT(v.acao||"")}</small><small>${v.n||"?"} pessoas</small></div><button class="btn" data-v="${i}">Voltar para esta</button></div>`).join("")+'</div>';
+  $("hL").querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>confirmRestore(vs[+b.dataset.v]));
+}
+function confirmRestore(v){
+  let o;try{o=JSON.parse(v.pessoas)}catch(e){toast("Essa cópia está estragada. Escolha outra.");return}
+  const ov=$("overlay");
+  ov.innerHTML=`<div class="dialog" role="alertdialog" aria-labelledby="rT"><h2 id="rT">Voltar para ${escT(fmtQ(v.quando))}?</h2>
+    <p class="sub">A árvore inteira fica como estava nesse momento, com ${Object.keys(o).length} pessoas. O que foi mudado depois sai, mas a árvore de agora também fica guardada, então dá para voltar para ela pelo mesmo botão.</p>
+    <div class="actions"><button class="btn" id="rNo">Cancelar</button><button class="btn primary" id="rYes">Voltar</button></div></div>`;
+  ov.hidden=false;$("rNo").onclick=openHist;
+  $("rYes").onclick=async()=>{
+    $("rYes").disabled=true;$("rNo").disabled=true;$("rYes").textContent="Voltando...";
+    try{
+      const agora=[...people.keys()];
+      await snap("voltar para a versão de "+fmtQ(v.quando));
+      const col=db.collection("pessoas");
+      for(const [k,p] of Object.entries(o))await col.doc(k).set(p);
+      for(const k of agora)if(!(k in o))await col.doc(k).delete();
+      closeForm();toast("A árvore voltou a ficar como em "+fmtQ(v.quando)+".");
+    }catch(err){closeForm();toast(errMsg(err))}
+  };
+}
+$("histBtn").onclick=openHist;
+
+/* ---------- mapa: onde a família estava em cada ano ----------
+   Só usa o que está nas fichas: lugar e ano de nascimento, lugar e ano da morte e os marcos.
+   A pessoa fica no lugar onde nasceu até mudar; a mudança vem de um marco ("chega", "muda"),
+   do lugar onde nasceu um filho ou do lugar da morte. Cônjuge e filhos menores de 25 acompanham
+   a travessia do oceano. Coordenadas aproximadas, no nível da cidade. */
+const GAZ=[
+  [/vila velha/,"Vila Velha",-20.33,-40.29],
+  [/vitoria/,"Vitória",-20.32,-40.34],
+  [/cariacica|campo grande/,"Cariacica",-20.34,-40.40],
+  [/afonso claudio|serra pelada/,"Afonso Cláudio",-20.08,-41.12],
+  [/baixo guandu/,"Baixo Guandu",-19.52,-41.01],
+  [/colatina/,"Colatina",-19.54,-40.63],
+  [/teofilo otoni/,"Teófilo Otoni",-17.86,-41.51],
+  [/cambe/,"Cambé",-23.28,-51.28],
+  [/bauru/,"Bauru",-22.31,-49.06],
+  [/sao paulo, sp|^sao paulo$/,"São Paulo",-23.55,-46.63],
+  [/rio de janeiro/,"Rio de Janeiro",-22.91,-43.17],
+  [/stettin|szczecin/,"Stettin",53.43,14.55],
+  [/ickermunde|penkun/,"Ickermünde",53.30,14.24],
+  [/lippehne|lipiany/,"Lippehne",53.00,14.97],
+  [/othfresen/,"Othfresen",52.04,10.36],
+  [/pomerania/,"Pomerânia",53.9,15.6]
+];
+const mpNorm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+const mpPl=str=>{const s=mpNorm(str);if(!s)return null;for(const g of GAZ)if(g[0].test(s))return {k:g[1],lat:g[2],lon:g[3]};return null};
+const mpYr=str=>{const m=String(str||"").match(/\b(1[5-9]\d\d|20\d\d)\b/g);return m?+m[m.length-1]:null};
+let MPB=null,mpM=null;
+
+function mapModel(){
+  const NOW=new Date().getFullYear(),st=new Map(),ev=[];
+  people.forEach((p,id)=>{
+    const by=mpYr(p.nascimento),dy=mpYr(p.falecimento),bp=mpPl(p.localNascimento);
+    const dm=/,\s*em\s+(.+)$/i.exec(p.falecimento||"");const dp=dm?mpPl(dm[1]):null;
+    if(bp&&by)ev.push({y:by,t:"nasce",id,pl:bp});
+    if(dp&&dy)ev.push({y:dy,t:"morre",id,pl:dp});
+    (p.marcos||[]).forEach(m=>{if(m&&+m.ano)ev.push({y:+m.ano,t:"marco",id,tx:m.texto||"",pl:/stettin/i.test(m.texto||"")?mpPl("stettin"):null})});
+    const end=dy||(isDead(p)?(by?by+65:null):NOW);
+    st.set(id,{id,by,dy,end,bp,dp,mvY:null,to:null,p});
+  });
+  const kids=id=>[...st.values()].filter(x=>x.p.pai===id||x.p.mae===id);
+  // mudança própria
+  st.forEach(x=>{
+    if(!x.bp)return;
+    const marco=(x.p.marcos||[]).filter(m=>/cheg|mud/i.test(m.texto||"")).map(m=>+m.ano).filter(Boolean).sort((a,b)=>a-b)[0];
+    let to=x.dp&&x.dp.k!==x.bp.k?x.dp:null,y=null;
+    if(to){y=marco||kids(x.id).filter(k=>k.bp&&k.bp.k===to.k&&k.by).map(k=>k.by).sort((a,b)=>a-b)[0]||x.dy}
+    else if(marco){const k=kids(x.id).find(k=>k.bp&&k.bp.k!==x.bp.k&&k.by&&k.by>=marco);if(k){to=k.bp;y=marco}}
+    if(!to){const k=kids(x.id).filter(k=>k.bp&&k.bp.k!==x.bp.k&&k.by).sort((a,b)=>a.by-b.by)[0];if(k){to=k.bp;y=Math.max(k.by-1,x.by||0)}}
+    if(to&&y){x.to=to;x.mvY=y}
+  });
+  // cônjuge e filhos novos atravessam o oceano junto
+  st.forEach(x=>{
+    if(!x.to||!(x.bp.lat>0&&x.to.lat<0))return;
+    const fol=[...(x.p.conjuges||[]),...kids(x.id).map(k=>k.id)];
+    fol.forEach(fid=>{const f=st.get(fid);if(!f||!f.bp||!(f.bp.lat>0))return;
+      if(f.by&&f.by>x.mvY)return;const isKid=f.p.pai===x.id||f.p.mae===x.id;if(isKid&&f.by&&x.mvY-f.by>=25)return;
+      if(f.end&&f.end<x.mvY)return;
+      if(f.to){if(f.to.lat<0&&f.mvY>x.mvY)f.mvY=x.mvY;return}
+      f.to=x.to;f.mvY=x.mvY});
+  });
+  // quem só tem o lugar de nascimento, mas casou com alguém que vivia em outro continente, vai para lá antes do primeiro filho
+  const roughAt=(s,y,d)=>{if(!s)return null;if(s.bp)return s.to&&s.mvY<=y?s.to:s.bp;if(d>1)return null;return roughAt(st.get(s.p.pai),y,d+1)||roughAt(st.get(s.p.mae),y,d+1)};
+  st.forEach(x=>{
+    if(x.to||!x.bp)return;
+    const ch=kids(x.id).filter(k=>k.by).sort((a,b)=>a.by-b.by)[0];if(!ch)return;
+    for(const sid of (x.p.conjuges||[])){const sl=roughAt(st.get(sid),ch.by,0);if(sl&&sl.k!==x.bp.k&&(sl.lat<0)!==(x.bp.lat<0)){x.to=sl;x.mvY=Math.max(ch.by-1,x.by||0);break}}
+  });
+  const at=(x,y)=>{if(!x.bp||!x.by||y<x.by||(x.end&&y>x.end))return null;return x.mvY!=null&&y>=x.mvY?x.to:x.bp};
+  // trajetos: mudanças e filhos nascidos longe de onde o pai ou a mãe estava
+  const mv=new Map();
+  const addMv=(y,a,b,why)=>{if(!a||!b||a.k===b.k)return;const k=a.k+">"+b.k;const o=mv.get(k);if(!o||y<o.y)mv.set(k,{y,a,b,why})};
+  st.forEach(x=>{if(x.to)addMv(x.mvY,x.bp,x.to,x.id)});
+  st.forEach(x=>{if(!x.bp||!x.by)return;[x.p.pai,x.p.mae].forEach(pid=>{const pa=st.get(pid);if(pa)addMv(x.by,at(pa,x.by),x.bp,x.id)})});
+  const ys=[...ev.map(e=>e.y),...[...st.values()].map(x=>x.by).filter(Boolean)];
+  ev.sort((a,b)=>a.y-b.y||({marco:0,nasce:1,morre:2}[a.t]-{marco:0,nasce:1,morre:2}[b.t]));
+  return {st:[...st.values()],ev,mv:[...mv.values()],at,min:ys.length?Math.min(...ys):1800,max:NOW};
+}
+function mpLoad(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+async function mpBase(){
+  if(MPB)return MPB;
+  if(!window.d3)await mpLoad("https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js");
+  if(!window.topojson)await mpLoad("https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js");
+  const w=await (await fetch("mundo.json")).json();
+  MPB={land:topojson.feature(w,w.objects.countries)};return MPB;
+}
+
+/* ---------- globo da História: gira com a linha do tempo e com o dedo ---------- */
+let GL=null;
+function globeSetup(y){
+  const host=$("hsG");if(!host)return;
+  mpM=mapModel();
+  mpBase().then(()=>{
+    if(!$("hsG"))return;
+    const svg=d3.select("#hsSvg");svg.selectAll("*").remove();
+    svg.append("path").attr("class","hs-sea");
+    svg.append("path").attr("class","hs-grat");
+    svg.append("g").attr("class","land");svg.append("g").attr("class","lines");svg.append("g").attr("class","dots");svg.append("g").attr("class","labs");
+    const old=GL;
+    GL={svg,rot:old?old.rot:[-15,-20],sc:old?old.sc:0,year:null,anim:0,grat:d3.geoGraticule10()};
+    svg.call(d3.drag().on("start",()=>{cancelAnimationFrame(GL.anim);if(typeof stopPlay==="function"&&playing)stopPlay()}).on("drag",e=>{
+      const k=70/GL.sc*3;GL.rot=[GL.rot[0]+e.dx*k,Math.max(-85,Math.min(85,GL.rot[1]-e.dy*k))];globeDraw()}));
+    host.addEventListener("wheel",e=>{e.preventDefault();cancelAnimationFrame(GL.anim);const m=Math.min(host.clientWidth,host.clientHeight);GL.sc=Math.max(m*.42,Math.min(m*40,GL.sc*Math.exp(-e.deltaY*.0015)));globeDraw()},{passive:false});
+    $("hsMsg").hidden=true;
+    globeYear(y,true);
+  }).catch(()=>{const m=$("hsMsg");if(m){m.textContent="O globo não abriu. Confira a internet e abra a História de novo.";m.hidden=false}});
+}
+function globeState(y){
+  const cnt=new Map();mpM.st.forEach(x=>{const p=mpM.at(x,y);if(p){const o=cnt.get(p.k)||{pl:p,n:0};o.n++;cnt.set(p.k,o)}});
+  const lines=mpM.mv.filter(m=>m.y<=y);
+  const pts=[];cnt.forEach(o=>pts.push([o.pl.lon,o.pl.lat]));
+  lines.filter(m=>y-m.y<=6).forEach(m=>{pts.push([m.a.lon,m.a.lat],[m.b.lon,m.b.lat])});
+  return {cnt,lines,pts};
+}
+function globeYear(y,now){
+  if(!GL||!mpM||!y)return;
+  if(GL.year===y&&!now)return;GL.year=y;
+  const S=globeState(y);GL.S=S;
+  const host=$("hsG");const m=Math.min(host.clientWidth,host.clientHeight)||300;
+  let tgt=GL.rot,sc=GL.sc||m*.45;
+  if(S.pts.length){
+    // centro: média dos pontos na esfera; aproximação: quanto mais espalhados, mais longe
+    let X=0,Y=0,Z=0;S.pts.forEach(([lo,la])=>{const a=lo*Math.PI/180,b=la*Math.PI/180;X+=Math.cos(b)*Math.cos(a);Y+=Math.cos(b)*Math.sin(a);Z+=Math.sin(b)});
+    const lon=Math.atan2(Y,X)*180/Math.PI,lat=Math.atan2(Z,Math.hypot(X,Y))*180/Math.PI;
+    const spread=Math.max(...S.pts.map(p=>d3.geoDistance(p,[lon,lat])*180/Math.PI));
+    const th=Math.min(88,Math.max(16,spread*1.35+6));
+    tgt=[-lon,-lat];sc=th>=88?m*.45:m*.45/Math.sin(th*Math.PI/180);
+  }
+  const r0=GL.rot.slice(),s0=GL.sc||sc;
+  const dl=((tgt[0]-r0[0])%360+540)%360-180;
+  cancelAnimationFrame(GL.anim);
+  const dur=now?0:900,t0=performance.now();
+  const step=t=>{const k=dur?Math.min(1,(t-t0)/dur):1,e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+    GL.rot=[r0[0]+dl*e,r0[1]+(tgt[1]-r0[1])*e];GL.sc=s0*Math.pow(sc/s0,e);globeDraw();if(k<1)GL.anim=requestAnimationFrame(step)};
+  GL.anim=requestAnimationFrame(step);
+  const tot=[...S.cnt.values()].reduce((a,o)=>a+o.n,0);
+  $("hsCap").innerHTML=`<b>${y}</b> ${tot?`${tot} ${tot===1?"pessoa":"pessoas"} da família em ${S.cnt.size} ${S.cnt.size===1?"lugar":"lugares"}`:"ninguém com lugar registrado"}`;
+}
+function globeDraw(){
+  if(!GL||!GL.S)return;
+  const host=$("hsG");if(!host)return;const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;
+  const {svg,S}=GL,y=GL.year;svg.attr("viewBox",`0 0 ${w} ${h}`);
+  if(!GL.sc)GL.sc=Math.min(w,h)*.45;
+  const proj=d3.geoOrthographic().translate([w/2,h/2]).scale(GL.sc).rotate(GL.rot).clipAngle(90),path=d3.geoPath(proj);
+  const ctr=[-GL.rot[0],-GL.rot[1]],vis=p=>d3.geoDistance(p,ctr)<Math.PI/2-.02;
+  svg.select(".hs-sea").attr("d",path({type:"Sphere"}));
+  svg.select(".hs-grat").attr("d",path(GL.grat));
+  svg.select("g.land").selectAll("path").data(MPB.land.features).join("path").attr("class","mp-land").attr("d",path);
+  svg.select("g.lines").selectAll("path").data(S.lines,m=>m.a.k+">"+m.b.k).join("path")
+    .attr("class",m=>"mp-line"+(y-m.y>12?" old":"")).attr("d",m=>path({type:"LineString",coordinates:[[m.a.lon,m.a.lat],[m.b.lon,m.b.lat]]}));
+  const grp=[];[...S.cnt.values()].sort((a,b)=>b.n-a.n).forEach(o=>{const ll=[o.pl.lon,o.pl.lat];if(!vis(ll))return;const q=proj(ll);
+    const g=grp.find(c=>Math.hypot(c.x-q[0],c.y-q[1])<28);if(g){g.n+=o.n;g.ks.push(o.pl.k)}else grp.push({x:q[0],y:q[1],n:o.n,ks:[o.pl.k],id:o.pl.k})});
+  const r=n=>4+3.2*Math.sqrt(n);
+  svg.select("g.dots").selectAll("circle").data(grp,c=>c.id).join("circle").attr("class","mp-dot").attr("cx",c=>c.x).attr("cy",c=>c.y).attr("r",c=>r(c.n));
+  const lab=c=>c.ks.length<2?c.ks[0]:c.ks.length<3&&w>500?c.ks.join(" e "):c.ks[0]+" +"+(c.ks.length-1),lft=c=>c.x+r(c.n)+10+(lab(c).length+3)*7.6>w-6;
+  svg.select("g.labs").selectAll("text").data(grp,c=>c.id).join("text").attr("class","mp-lab")
+    .attr("text-anchor",c=>lft(c)?"end":"start").attr("x",c=>lft(c)?c.x-r(c.n)-6:c.x+r(c.n)+6).attr("y",c=>c.y+5)
+    .attr("font-size",15).attr("stroke-width",4)
+    .html(c=>`${escT(lab(c))} <tspan class="n" font-size="12">${c.n}</tspan>`);
+}
+window.addEventListener("resize",()=>{if(view==="historia")globeDraw()});
+
+/* ---------- busca e zoom ---------- */
+$("q").oninput=()=>{
+  const q=$("q").value.trim().toLocaleLowerCase("pt-BR");const r=$("results");
+  if(!q){r.hidden=true;return}
+  const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLocaleLowerCase("pt-BR");
+  const hits=[...people.keys()].filter(i=>norm(name(i)).includes(norm(q))).sort(byName).slice(0,12);
+  r.innerHTML=hits.length?hits.map(i=>`<button data-id="${escT(i)}">${escT(name(i))} <small>${escT(lifeShort(P(i)))}</small></button>`).join(""):'<button disabled>Ninguém com esse nome.</button>';
+  r.hidden=false;
+  r.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>{goTo(b.dataset.id);r.hidden=true;$("q").value=""});
+};
+document.addEventListener("click",e=>{if(!e.target.closest(".search"))$("results").hidden=true});
+$("zoomIn").onclick=()=>{scale=Math.min(1.6,+(scale+0.15).toFixed(2));applyScale()};
+$("zoomOut").onclick=()=>{scale=Math.max(0.4,+(scale-0.15).toFixed(2));applyScale()};
+$("addNew").onclick=()=>{if(readOnly){toast("Esta conta só pode ver a árvore.");return}openForm(null,null)};
+
+/* ---------- conexão com o banco ---------- */
+async function start(){
+  const c=window.claude;
+  if(c&&c.use)c.use("user").then(async u=>{try{canEd=!!(u&&await u.canEdit())}catch(e){canEd=false}edKnown=true;if(loaded)render()}).catch(()=>{edKnown=true});
+  db=c&&c.use?await c.use("db"):null;
+  if(c&&c.use)c.use("assets").then(a=>{assets=a;if(loaded)render()}).catch(()=>{});
+  if(!db){
+    // sem conta no Claude: mostra a cópia gravada na própria página, só para ver
+    let snap=[];try{snap=JSON.parse($("snapData").textContent)}catch(e){}
+    readOnly=true;$("addNew").hidden=true;loaded=true;edKnown=true;canEd=false;
+    if(!snap.length){$("empty").hidden=false;$("empty").innerHTML='<div><h2>A árvore não abriu aqui</h2><p>Recarregue a página. Se continuar vazia, peça um link novo para quem montou a árvore.</p></div>';return}
+    people=new Map(snap);
+    if(eu&&!people.has(eu))eu=null;
+    if(!eu)showWho();
+    cur=eu||focusId();selected=cur;render();return;
+  }
+  let first=true;
+  const timer=setTimeout(()=>{if(first)status("A árvore está demorando para carregar. Confira a internet; ela aparece sozinha quando conectar.")},10000);
+  db.collection("pessoas").onSnapshot(snap=>{
+    people=new Map(snap.docs.map(d=>[d.id,d.data()]));
+    if(!snap.metadata.fromCache){clearTimeout(timer);status("")}
+    const firstTime=first;first=false;loaded=true;
+    render();
+    if(firstTime&&people.size){
+      if(eu&&!people.has(eu))eu=null;
+      if(!eu)showWho();
+      cur=eu||focusId();selected=cur;render();
+      if(view==="toda")setTimeout(()=>focusOn(cur),80);
+    }
+  },err=>{clearTimeout(timer);loaded=true;status("A árvore perdeu a conexão. Recarregue a página para tentar de novo.");render()});
+}
+start();
+})();
+</script>
+
+</body></html>
