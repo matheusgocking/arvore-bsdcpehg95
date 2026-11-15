@@ -404,6 +404,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
     </div>
     <span class="viewNote" id="viewNote"></span>
     <button class="linkbtn" id="openAll" hidden></button>
+    <button class="linkbtn" id="oldBtn" hidden>Mostrar o antepassado mais antigo</button>
   </div>
   <div class="tools">
     <div class="search" id="searchBox" hidden>
@@ -701,9 +702,8 @@ function render(){
     $("panel").hidden=true;return;
   }
   empty.hidden=true;
-  if(view==="toda"&&edKnown&&!canEd)view="caminho";
   const ed=canEd&&!readOnly&&!!db;
-  $("editToggle").hidden=!ed;$("histBtn").hidden=!ed;$("addNew").hidden=!ed;$("vToda").hidden=!canEd;$("searchBox").hidden=!canEd;
+  $("editToggle").hidden=!ed;$("histBtn").hidden=!ed;$("addNew").hidden=!ed;$("vToda").hidden=false;$("searchBox").hidden=!canEd;$("oldBtn").hidden=view!=="toda"||!oldestPath(focusId()).length;
   if(readOnly&&editing)setEditing(false);
   ["vCam","vHist","vToda"].forEach(b=>{const on=(b==="vCam"&&view==="caminho")||(b==="vHist"&&view==="historia")||(b==="vToda"&&view==="toda");$(b).classList.toggle("on",on);$(b).setAttribute("aria-pressed",on)});
   const tv=view==="toda";
@@ -793,7 +793,7 @@ function cardDown(e){
   if(e.button!==undefined&&e.button!==0)return;
   if(e.target.closest(".fold"))return;
   const el=e.currentTarget,id=el.dataset.id;
-  const canMove=view==="toda"&&!readOnly&&(e.pointerType==="mouse"||e.pointerType==="pen"||moveMode);
+  const canMove=view==="toda"&&!readOnly&&canEd&&(e.pointerType==="mouse"||e.pointerType==="pen"||moveMode);
   drag={id,el,sx:e.clientX,sy:e.clientY,ox:pos.x[id],oy:pos.y[id],moved:false,canMove,pid:e.pointerId};
   if(canMove){el.setPointerCapture(e.pointerId);e.stopPropagation()}
   el.addEventListener("pointermove",cardMove);
@@ -848,6 +848,28 @@ function setEditing(on){
 }
 $("editToggle").onclick=()=>setEditing(!editing);
 $("openAll").onclick=()=>{collapsed.clear();saveView();render()};
+// caminho da pessoa até o antepassado de nascimento mais antigo (sem data, estima ~28 anos por geração)
+function oldestPath(id){
+  if(!id||!people.has(id))return [];
+  const base=year(P(id).nascimento)||new Date().getFullYear();
+  let best=null,bestY=Infinity,bestD=-1;
+  const seen=new Set([id]);
+  (function walk(x,path){
+    for(const v of parentsOf(x)){
+      if(!people.has(v)||seen.has(v))continue;seen.add(v);
+      const np=[...path,v],q=P(v);
+      const y=year(q.nascimento)||(year(q.falecimento)?year(q.falecimento)-60:base-28*np.length);
+      if(y<bestY||(y===bestY&&np.length>bestD)){best=np;bestY=y;bestD=np.length}
+      walk(v,np);
+    }
+  })(id,[]);
+  return best||[];
+}
+$("oldBtn").onclick=()=>{
+  const f=focusId(),path=oldestPath(f);if(!path.length)return;
+  [f,...path].forEach(i=>{collapsed.delete(i);opened.add(i)});
+  const last=path[path.length-1];selected=last;saveView();render();setTimeout(()=>focusOn(last),80);
+};
 $("moveMode").onclick=()=>{
   moveMode=!moveMode;$("tree").classList.toggle("movemode",moveMode);
   $("moveMode").classList.toggle("on",moveMode);$("moveMode").setAttribute("aria-pressed",moveMode);
@@ -907,7 +929,7 @@ function personBody(id){
   if(isDead(p)||editing){
     const ag=ageOf(p);
     h+=sec("morte","Morte",p.falecimento?(year(p.falecimento)||"")+(ag?" · "+(ag.approx?"cerca de ":"")+ag.a+" anos":""):"",
-      (p.falecimento&&p.falecimento!=="sim"?`<p>${escT(p.falecimento)}${ag?", aos "+(ag.approx?"cerca de ":"")+ag.a+" anos":""}.</p>`:"")+
+      (p.falecimento&&p.falecimento.toLowerCase()!=="sim"?`<p>${escT(p.falecimento)}${ag?", aos "+(ag.approx?"cerca de ":"")+ag.a+" anos":""}.</p>`:"")+
       `<p><b>Causa:</b> ${p.causaMorte?escT(p.causaMorte):'<span class="none">não aparece nas fontes achadas.</span>'}</p>`);
   }
   if(show(p.feitos))h+=sec("feitos","Histórias e feitos",firstLine(p.feitos),p.feitos?`<p class="txt">${escT(p.feitos)}</p>`:'<p class="none">Nada registrado ainda.</p>');
@@ -941,7 +963,7 @@ async function patch(id,data,msg){try{await snap(msg.replace(/\.$/,"")+" ("+name
 function picHtml(p,cls){return p.foto?`<div class="${cls}" style="background-image:url('${photoUrl(p.foto)}')" role="img" aria-label="Foto de ${escT(p.nome||"")}"></div>`:`<div class="${cls}" aria-hidden="true">${escT(initials(p.nome))}</div>`}
 function lifeLong(p){
   const born=[p.nascimento,p.localNascimento].filter(Boolean).join(", ");
-  return [born?"Nasceu em "+born:"",p.falecimento&&p.falecimento!=="sim"?"morreu em "+p.falecimento:p.falecimento?"já falecido":""].filter(Boolean).join(" · ")+(ageTxt(p)?" "+ageTxt(p):"");
+  return [born?"Nasceu em "+born:"",p.falecimento&&p.falecimento.toLowerCase()!=="sim"?"morreu em "+p.falecimento:p.falecimento?(p.sexo==="f"?"já falecida":"já falecido"):""].filter(Boolean).join(" · ")+(ageTxt(p)?" "+ageTxt(p):"");
 }
 function renderPanel(){
   const pn=$("panel");
@@ -986,6 +1008,7 @@ function renderJourney(){
   const pai=p.pai&&people.has(p.pai)?p.pai:null,mae=p.mae&&people.has(p.mae)?p.mae:null;
   const below=trail.length>1?trail[trail.length-2]:null;
   const k=kinLabel(cur);
+  const oldP=oldestPath(cur);
   j.style.setProperty("--tint",tintFor(year(p.nascimento)));
   j.innerHTML=`<div class="col in">
     ${trail.length>1?`<div class="trail">${trail.map((t,i)=>i===trail.length-1?`<span>${escT(firstName(t))}</span>`:`<button data-go="${escT(t)}">${escT(firstName(t))}</button><span aria-hidden="true">↑</span>`).join(" ")}</div>`:""}
@@ -997,10 +1020,11 @@ function renderJourney(){
       ${personBody(cur)}
     </article>
     ${below?`<div class="downs"><span class="lab">DESCER</span>${miniBtn(below,"Voltar para")}</div>`:""}
-    <div class="row" style="justify-content:center"><button class="linkbtn" id="jTree">Ver a árvore a partir ${p.sexo==="f"?"dela":"dele"}</button></div>
+    ${oldP.length?`<div class="row" style="justify-content:center"><button class="btn" id="jOld">Ir ao antepassado mais antigo: ${escT(P(oldP[oldP.length-1]).nome||"")} ↑</button></div>`:""}
+    <div class="row" style="justify-content:center"><button class="linkbtn" id="jTree">Ver como árvore a partir ${p.sexo==="f"?"dela":"dele"}</button></div>
   </div>`;
   wireBody(j,cur);
-  $("jTree").parentElement.hidden=!canEd;
+  const jo=$("jOld");if(jo)jo.onclick=()=>{trail=[cur,...oldP];cur=oldP[oldP.length-1];render();window.scrollTo({top:0})};
   $("jTree").onclick=()=>{selected=cur;focus=cur;view="toda";saveView();render();setTimeout(()=>focusOn(cur),60)};
   eraAnim(year(p.nascimento)||year(p.falecimento));
 }
