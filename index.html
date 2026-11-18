@@ -926,6 +926,7 @@ function personBody(id){
   if(show(p.religiao))h+=sec("religiao","Religião",firstLine(p.religiao),p.religiao?`<p class="txt">${escT(p.religiao)}</p>`:'<p class="none">Nenhum registro achado.</p>');
   if(show(p.trabalho||p.formacao))h+=sec("trabalho","Trabalho e formação",firstLine(p.trabalho||p.formacao),
     (p.trabalho?`<p class="txt"><b>Trabalho.</b> ${escT(p.trabalho)}</p>`:"")+(p.formacao?`<p class="txt"><b>Formação.</b> ${escT(p.formacao)}</p>`:"")+(!p.trabalho&&!p.formacao?'<p class="none">Nenhum registro achado.</p>':""));
+  if(show(p.saude))h+=sec("saude","Saúde",firstLine(p.saude),p.saude?`<p class="txt">${escT(p.saude)}</p>`:'<p class="none">Nenhum registro achado.</p>');
   if(isDead(p)||editing){
     const ag=ageOf(p);
     h+=sec("morte","Morte",p.falecimento?(year(p.falecimento)||"")+(ag?" · "+(ag.approx?"cerca de ":"")+ag.a+" anos":""):"",
@@ -1191,6 +1192,7 @@ function openForm(editId,ctx){
       <div class="f"><label for="fTrab">Trabalho</label><textarea id="fTrab" placeholder="Profissão, onde trabalhou">${escT(base.trabalho||"")}</textarea></div>
       <div class="f"><label for="fForm">Formação</label><textarea id="fForm" placeholder="Escola, faculdade, cursos">${escT(base.formacao||"")}</textarea></div>
     </div>
+    <div class="f"><label for="fSaude">Saúde</label><textarea id="fSaude" placeholder="Doenças, acidentes, cirurgias, e de onde vem a informação">${escT(base.saude||"")}</textarea></div>
     <div class="f"><label for="fCausa">Causa da morte</label><input id="fCausa" value="${escT(base.causaMorte||"")}" placeholder="Só se houver registro ou relato da família"></div>
     <div class="f"><label for="fFeitos">Histórias e feitos</label><textarea id="fFeitos" placeholder="O que a família conta, o que essa pessoa fez">${escT(base.feitos||"")}</textarea></div>
     <div class="f"><label for="fNotas">Fontes e notas</label><textarea id="fNotas" placeholder="De onde vem cada informação">${escT(base.notas)}</textarea></div>
@@ -1215,7 +1217,7 @@ function openForm(editId,ctx){
     const sx=document.querySelector('input[name="fSexo"]:checked');
     const data={nome,sexo:sx?sx.value:"",nascimento:$("fNasc").value.trim(),localNascimento:$("fLocal").value.trim(),
       falecimento:$("fFal").value.trim(),pai:$("fPai").value,mae:$("fMae").value,conjuges:spouses.slice(),notas:$("fNotas").value.trim(),
-      religiao:$("fRel").value.trim(),trabalho:$("fTrab").value.trim(),formacao:$("fForm").value.trim(),causaMorte:$("fCausa").value.trim(),feitos:$("fFeitos").value.trim()};
+      religiao:$("fRel").value.trim(),trabalho:$("fTrab").value.trim(),formacao:$("fForm").value.trim(),causaMorte:$("fCausa").value.trim(),saude:$("fSaude").value.trim(),feitos:$("fFeitos").value.trim()};
     $("fSave").disabled=true;$("fSave").textContent="Salvando...";
     try{
       const id=await savePerson(editId,data,ctx);
